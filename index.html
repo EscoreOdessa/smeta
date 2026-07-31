@@ -6,17 +6,16 @@
 <title>Кошторис — форма проєкту (ESCORE)</title>
 <style>
   :root{--input:#FFF2CC;--input-border:#E6D9A8;--lock:#F3F3F1;--line:#e2e2dd;
-    --ink:#2b2b28;--muted:#75736c;--accent:#1d7a56;--group:#eef4f0;--err:#b3261e;--anna:#efe7fb}
+    --ink:#2b2b28;--muted:#75736c;--accent:#1d7a56;--group:#dbe8e0;--err:#b3261e;--anna:#efe7fb}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:#faf9f6}
   header{padding:14px 22px;border-bottom:1px solid var(--line);background:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
   h1{font-size:17px;font-weight:600;margin:0}
   .sub{font-size:12px;color:var(--muted)}
-  .wrap{max-width:1180px;margin:0 auto;padding:18px 22px 96px}
+  .wrap{max-width:1240px;margin:0 auto;padding:16px 22px 96px}
   .btn{background:var(--accent);color:#fff;border:none;height:36px;padding:0 18px;border-radius:8px;font-size:14px;cursor:pointer;white-space:nowrap}
   .btn.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
   .btn:disabled{opacity:.5;cursor:default}
-  input,select{font-family:inherit}
   .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
   .card h2{font-size:15px;margin:0 0 10px}
   .ti{height:34px;border:1px solid var(--input-border);background:var(--input);border-radius:6px;padding:0 10px;font-size:14px;width:340px;max-width:100%}
@@ -27,21 +26,21 @@
   .tab.active{background:#fff;border-color:var(--line);color:var(--ink);font-weight:600;margin-bottom:-2px}
   .panel{background:#fff;border:1px solid var(--line);border-top:none;overflow-x:auto;min-height:120px}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th{background:#2f5d4b;color:#fff;font-weight:500;text-align:left;padding:8px 10px;font-size:12px}
-  td{padding:4px 8px;border-bottom:1px solid #f0efe9;vertical-align:middle}
-  tr.grp td{background:var(--group);font-weight:600;color:#234}
+  th{background:#2f5d4b;color:#fff;font-weight:500;text-align:left;padding:7px 9px;font-size:12px}
+  td{padding:3px 7px;border-bottom:1px solid #f0efe9;vertical-align:middle}
+  tr.grp td{background:var(--group);font-weight:600;color:#1c3b2e}
   td.lock{color:#555}
-  td.anna{background:var(--anna)}
-  input.f,select.f{width:100%;min-width:80px;height:30px;border:1px solid var(--input-border);background:var(--input);border-radius:5px;padding:0 8px;font-size:13px}
-  input.f.annaf{background:var(--anna);border-color:#c9b8ee}
+  td.pricecell{background:#eef4f0;color:#3b6d5a;text-align:right;font-variant-numeric:tabular-nums}
+  input.f,select.f{width:100%;min-width:70px;height:29px;border:1px solid var(--input-border);background:var(--input);border-radius:5px;padding:0 7px;font-size:13px}
+  input.f.annaf,select.f.annaf,td.anna input.f{background:var(--anna);border-color:#c9b8ee}
+  td.anna{background:#f6f1fd}
   input.f:focus,select.f:focus{outline:2px solid #d8c874}
-  input.f:disabled{background:#f3f3f1;border-color:#e2e2dd;color:#999}
+  input.f:disabled,select.f:disabled{background:#f3f3f1;border-color:#e2e2dd;color:#999}
   .status{padding:20px;color:var(--muted);font-size:14px}
   .bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:10px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
   .msg{font-size:13px}.msg.err{color:var(--err)}
   .hidden{display:none}
-  .gate{max-width:560px;margin:52px auto;text-align:center}
-  .gate p{color:var(--muted);font-size:14px;line-height:1.6}
+  .gate{max-width:560px;margin:52px auto;text-align:center}.gate p{color:var(--muted);font-size:14px;line-height:1.6}
   .projlist button{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin:6px 0;cursor:pointer;font-size:14px}
   .projlist button:hover{background:#f5f5f0}
   a{color:var(--accent)}
@@ -52,80 +51,62 @@
   <div><h1>Кошторис проєкту · ESCORE</h1><div class="sub" id="projname">Заповнюються лише підсвічені поля. Структуру не зламати.</div></div>
   <div id="acct" class="sub"></div>
 </header>
-
 <div class="wrap">
-  <!-- SIGN IN -->
   <div id="gate" class="gate">
     <p>Увійдіть через робочий Google-акаунт, щоб створити або відкрити проєкт.</p>
     <button class="btn" id="signin" disabled>Увійти через Google</button>
     <p id="gateerr" class="msg err"></p>
   </div>
-
-  <!-- CHOOSER -->
   <div id="chooser" class="hidden">
-    <div class="card">
-      <h2>Створити новий проєкт</h2>
+    <div class="card"><h2>Створити новий проєкт</h2>
       <div class="sub" style="margin-bottom:8px">Копіює шаблон у папку «Проекти» на Google Drive. Зазвичай робить проєктант.</div>
       <input class="ti" id="newproj" placeholder="№ / назва проєкту, напр. 1245 Іваненко, Одеса">
-      <button class="btn" id="create" style="margin-left:8px">Створити проєкт</button>
-    </div>
-    <div class="card">
-      <h2>Відкрити наявний проєкт</h2>
+      <button class="btn" id="create" style="margin-left:8px">Створити проєкт</button></div>
+    <div class="card"><h2>Відкрити наявний проєкт</h2>
       <div class="sub" style="margin-bottom:8px">Оберіть проєкт зі списку або вставте посилання на файл.</div>
       <button class="btn ghost" id="loadlist">Показати список проєктів</button>
       <div class="projlist" id="projlist"></div>
-      <div style="margin-top:10px">
-        <input class="ti" id="openlink" placeholder="або вставте посилання на файл проєкту">
-        <button class="btn ghost" id="openbylink" style="margin-left:8px">Відкрити</button>
-      </div>
-    </div>
+      <div style="margin-top:10px"><input class="ti" id="openlink" placeholder="або вставте посилання на файл проєкту">
+        <button class="btn ghost" id="openbylink" style="margin-left:8px">Відкрити</button></div></div>
     <p id="chooserr" class="msg err"></p>
   </div>
-
-  <!-- EDITOR -->
   <div id="app" class="hidden">
     <div class="legend">
       <span><span class="sw" style="background:#FFF2CC"></span>поле вводу</span>
-      <span><span class="sw" style="background:#F3F3F1"></span>розрахунок / формула (заблоковано)</span>
+      <span><span class="sw" style="background:#F3F3F1"></span>розрахунок / заблоковано</span>
       <span id="annaleg" class="hidden"><span class="sw" style="background:#efe7fb"></span>ваша зона (ціни 1-го блоку, панелі)</span>
     </div>
     <div class="tabs" id="tabs"></div>
     <div class="panel"><div id="sheetHost"><div class="status">Завантаження…</div></div></div>
   </div>
 </div>
-
 <div class="bar hidden" id="bar">
   <span class="msg" id="msg"></span>
   <span style="display:flex;gap:10px">
     <button class="btn ghost" id="back">До проєктів</button>
-    <button class="btn" id="save" disabled>Зберегти</button>
-  </span>
+    <button class="btn" id="save" disabled>Зберегти</button></span>
 </div>
 
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client"></script>
 <script>
-const CONFIG = {
+const CONFIG={
   CLIENT_ID:"758495999284-fnsq0qf281d7vcd84hu7ri6eu2189psg.apps.googleusercontent.com",
   TEMPLATE_ID:"1CM9f2xcyIr9l_64hLZ6BiugC1GG71AwkWlepUYcux_0",
   SCOPES:"openid email https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
   PARENT_FOLDER:"Проекти",
   REFERENCE_SHEET:"Довідник обладнання та цін",
   ANNA_EMAIL:"anna.escore@gmail.com",
-  REF:{group:0,name:1,supplier:2,price:3,subgroup:6},   // Довідник A,B,C,D,G
-  INPUT_FILL:{r:1,g:0.949,b:0.8},                        // #FFF2CC
-  HIDE_HEADERS:[/наявн/i,/оновлюються автомат/i,/вартість/i],  // columns to hide in web
-  SHEETS:[
-    {title:"Кошторис_Наявність обладнання", headerRow:1, mode:"fill", cascade:{group:0,sub:1,equip:2}},
-    {title:"Розрахунок монтажних робіт", headerRow:0, mode:"col", inputCols:[2]}
-  ]
+  REF:{group:0,name:1,price:3,subgroup:5},   // Довідник A,B,D,F (0-based). data from row idx 1
+  INPUT_FILL:{r:1,g:0.949,b:0.8},
+  HIDE:[/наявн/i,/оновлюються автомат/i,/вартість/i],
+  KOSH:{title:"Кошторис_Наявність обладнання",headerRow:1,cols:[0,1,2,3,5,6],GROUP:0,SUB:1,NAME:2,SUPPLIER:3,UNIT:5,PRICE:6},
+  ROB:{title:"Розрахунок монтажних робіт",headerRow:0,inputCol:2}
 };
-
-let tokenClient, accessToken=null, userEmail=null, isAnna=false;
-let fileId=null, model=null, activeTab=0, hierarchy=null;
+let tokenClient,accessToken=null,userEmail=null,isAnna=false;
+let fileId=null,model=null,activeTab=0,hierarchy=null;
 const edits={};
 
-/* ---------- helpers ---------- */
 function colL(i){let s="";i++;while(i){let m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=(i-m-1)/26;}return s;}
 function A1(sheet,c,r){return "'"+sheet.replace(/'/g,"''")+"'!"+colL(c)+(r+1);}
 function nearly(a,b){return Math.abs(a-b)<0.02;}
@@ -133,13 +114,15 @@ function isFill(cell){const f=cell&&cell.userEnteredFormat;const bg=f&&(f.backgr
   if(!bg)return false;const r=bg.red||0,g=bg.green||0,b=bg.blue||0;
   return nearly(r,CONFIG.INPUT_FILL.r)&&nearly(g,CONFIG.INPUT_FILL.g)&&nearly(b,CONFIG.INPUT_FILL.b);}
 function isFormula(cell){return !!(cell&&cell.userEnteredValue&&cell.userEnteredValue.formulaValue);}
+function hasDV(cell){return !!(cell&&cell.dataValidation&&cell.dataValidation.condition);}
 function disp(cell){if(!cell)return "";if(cell.formattedValue!=null)return cell.formattedValue;
   const e=cell.effectiveValue||cell.userEnteredValue;if(!e)return "";
   return e.stringValue!=null?e.stringValue:(e.numberValue!=null?e.numberValue:"");}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 function setMsg(t,err){const m=document.getElementById("msg");m.textContent=t;m.className="msg"+(err?" err":"");}
+function errText(e){return (e&&e.result&&e.result.error&&e.result.error.message)||e.message||String(e);}
 
-/* ---------- auth ---------- */
+/* auth */
 window.addEventListener("load",()=>{
   gapi.load("client",async()=>{await gapi.client.init({discoveryDocs:[
     "https://sheets.googleapis.com/$discovery/rest?version=v4",
@@ -151,195 +134,161 @@ window.addEventListener("load",()=>{
   document.getElementById("signin").onclick=()=>tokenClient.requestAccessToken({prompt:"consent"});
   document.getElementById("create").onclick=createProject;
   document.getElementById("loadlist").onclick=listProjects;
-  document.getElementById("openbylink").onclick=()=>{const id=extractId(document.getElementById("openlink").value);if(id)openProject(id);else setChooserErr("Не розпізнав посилання.");};
+  document.getElementById("openbylink").onclick=()=>{const id=extractId(document.getElementById("openlink").value);id?openProject(id):setChooserErr("Не розпізнав посилання.");};
   document.getElementById("save").onclick=doSave;
   document.getElementById("back").onclick=()=>location.href=location.pathname;
 });
 async function afterSignIn(){
-  try{const info=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+accessToken}}).then(r=>r.json());
-    userEmail=(info.email||"").toLowerCase();}catch(e){userEmail="";}
-  isAnna = userEmail===CONFIG.ANNA_EMAIL.toLowerCase();
+  try{const info=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+accessToken}}).then(r=>r.json());userEmail=(info.email||"").toLowerCase();}catch(e){userEmail="";}
+  isAnna=userEmail===CONFIG.ANNA_EMAIL.toLowerCase();
   document.getElementById("acct").textContent=userEmail+(isAnna?" · режим: розрахунок цін":" · режим: заповнення");
   document.getElementById("gate").classList.add("hidden");
   const urlId=new URLSearchParams(location.search).get("id");
-  if(urlId){ openProject(urlId); } else { document.getElementById("chooser").classList.remove("hidden"); }
+  urlId?openProject(urlId):document.getElementById("chooser").classList.remove("hidden");
 }
 function setChooserErr(t){document.getElementById("chooserr").textContent=t||"";}
 function extractId(s){if(!s)return null;const m=String(s).match(/[-\w]{25,}/);return m?m[0]:null;}
 
-/* ---------- create / open ---------- */
+/* create/open */
 async function ensureFolder(name,parentId){
   let q=`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   if(parentId)q+=` and '${parentId}' in parents`;
   const r=await gapi.client.drive.files.list({q,fields:"files(id,name)"});
   if((r.result.files||[]).length)return r.result.files[0].id;
   const meta={name,mimeType:"application/vnd.google-apps.folder"};if(parentId)meta.parents=[parentId];
-  const c=await gapi.client.drive.files.create({resource:meta,fields:"id"});return c.result.id;
+  return (await gapi.client.drive.files.create({resource:meta,fields:"id"})).result.id;
 }
 async function createProject(){
   const name=document.getElementById("newproj").value.trim();
   if(!name){setChooserErr("Вкажіть № / назву проєкту.");return;}
   setChooserErr("");document.getElementById("create").disabled=true;
-  try{
-    const parent=await ensureFolder(CONFIG.PARENT_FOLDER,null);
-    const folder=await ensureFolder(name,parent);
+  try{const parent=await ensureFolder(CONFIG.PARENT_FOLDER,null);const folder=await ensureFolder(name,parent);
     const copy=await gapi.client.drive.files.copy({fileId:CONFIG.TEMPLATE_ID,resource:{name:name+" — Кошторис",parents:[folder]}});
     openProject(copy.result.id);
   }catch(e){setChooserErr("Не вдалося створити: "+errText(e));document.getElementById("create").disabled=false;}
 }
 async function listProjects(){
   setChooserErr("");const host=document.getElementById("projlist");host.innerHTML="Завантаження…";
-  try{
-    const p=await gapi.client.drive.files.list({q:`name='${CONFIG.PARENT_FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:"files(id)"});
+  try{const p=await gapi.client.drive.files.list({q:`name='${CONFIG.PARENT_FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:"files(id)"});
     const parent=(p.result.files||[])[0];if(!parent){host.innerHTML="Папку «Проекти» не знайдено.";return;}
     const subs=await gapi.client.drive.files.list({q:`'${parent.id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:"files(id,name)",orderBy:"name"});
-    const folders=subs.result.files||[];
-    if(!folders.length){host.innerHTML="Проєктів поки немає.";return;}
-    host.innerHTML="";
-    folders.forEach(f=>{const b=document.createElement("button");b.textContent=f.name;
+    const folders=subs.result.files||[];if(!folders.length){host.innerHTML="Проєктів поки немає.";return;}
+    host.innerHTML="";folders.forEach(f=>{const b=document.createElement("button");b.textContent=f.name;
       b.onclick=async()=>{const sp=await gapi.client.drive.files.list({q:`'${f.id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,fields:"files(id,name)"});
-        const file=(sp.result.files||[])[0];if(file)openProject(file.id);else setChooserErr("У папці «"+f.name+"» немає таблиці.");};
-      host.appendChild(b);});
+        const file=(sp.result.files||[])[0];file?openProject(file.id):setChooserErr("У «"+f.name+"» немає таблиці.");};host.appendChild(b);});
   }catch(e){host.innerHTML="";setChooserErr("Помилка списку: "+errText(e));}
 }
-function errText(e){return (e&&e.result&&e.result.error&&e.result.error.message)||e.message||String(e);}
 
-/* ---------- load project file ---------- */
+/* load */
 async function openProject(id){
-  fileId=id;
-  document.getElementById("chooser").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
-  document.getElementById("bar").classList.remove("hidden");
+  fileId=id;document.getElementById("chooser").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");document.getElementById("bar").classList.remove("hidden");
   if(isAnna)document.getElementById("annaleg").classList.remove("hidden");
-  try{
-    const meta=await gapi.client.drive.files.get({fileId:id,fields:"name,webViewLink"});
+  try{const meta=await gapi.client.drive.files.get({fileId:id,fields:"name"});
     document.getElementById("projname").innerHTML="Проєкт: <b>"+esc(meta.result.name)+"</b> · <a href='"+location.pathname+"?id="+id+"'>посилання для інженера</a>";
     await loadGrid(id);
   }catch(e){setMsg("Не вдалося відкрити: "+errText(e),true);}
 }
 async function loadGrid(id){
-  const ranges=CONFIG.SHEETS.map(s=>s.title).concat([CONFIG.REFERENCE_SHEET]);
+  const ranges=[CONFIG.KOSH.title,CONFIG.ROB.title,CONFIG.REFERENCE_SHEET];
   const resp=await gapi.client.sheets.spreadsheets.get({spreadsheetId:id,ranges,includeGridData:true,
     fields:"sheets(properties(title),data(rowData(values(formattedValue,userEnteredValue,effectiveValue,userEnteredFormat.backgroundColorStyle,userEnteredFormat.backgroundColor,dataValidation))))"});
   const byT={};(resp.result.sheets||[]).forEach(sh=>{byT[sh.properties.title]=(sh.data&&sh.data[0]&&sh.data[0].rowData)||[];});
-  model={sheets:CONFIG.SHEETS.map(cfg=>({cfg,rows:byT[cfg.title]||[]})),ref:byT[CONFIG.REFERENCE_SHEET]||[]};
-  buildHierarchy();
-  renderTabs();renderSheet(0);
-  document.getElementById("save").disabled=false;
-  setMsg("Завантажено. Заповніть жовті поля.");
+  model={kosh:byT[CONFIG.KOSH.title]||[],rob:byT[CONFIG.ROB.title]||[],ref:byT[CONFIG.REFERENCE_SHEET]||[]};
+  buildHierarchy();renderTabs();renderTab(0);
+  document.getElementById("save").disabled=false;setMsg("Завантажено. Заповніть жовті поля.");
 }
-function buildHierarchy(){
-  hierarchy={};const R=CONFIG.REF;
-  (model.ref||[]).slice(1).forEach(r=>{const v=r.values||[];const g=disp(v[R.group]),sub=disp(v[R.subgroup])||"—",name=disp(v[R.name]);
-    const price=v[R.price]&&(v[R.price].effectiveValue||v[R.price].userEnteredValue);const sup=disp(v[R.supplier]);
-    if(!g||!name)return;hierarchy[g]=hierarchy[g]||{};hierarchy[g][sub]=hierarchy[g][sub]||[];
-    hierarchy[g][sub].push({name,supplier:sup,price:price&&price.numberValue!=null?price.numberValue:null});});
+function buildHierarchy(){hierarchy={};const R=CONFIG.REF;
+  (model.ref||[]).slice(1).forEach(r=>{const v=r.values||[];const g=String(disp(v[R.group])).trim(),sub=String(disp(v[R.subgroup])).trim()||"—",name=String(disp(v[R.name])).trim();
+    const pc=v[R.price]&&(v[R.price].effectiveValue||v[R.price].userEnteredValue);const price=pc&&pc.numberValue!=null?pc.numberValue:null;
+    if(!g||!name)return;hierarchy[g]=hierarchy[g]||{};hierarchy[g][sub]=hierarchy[g][sub]||[];hierarchy[g][sub].push({name,price});});
 }
 
-/* ---------- render ---------- */
+/* tabs */
 function renderTabs(){const host=document.getElementById("tabs");host.innerHTML="";
-  model.sheets.forEach((s,i)=>{const d=document.createElement("div");d.className="tab"+(i===activeTab?" active":"");
-    d.textContent=s.cfg.title;d.onclick=()=>{activeTab=i;renderTabs();renderSheet(i);};host.appendChild(d);});}
+  [CONFIG.KOSH.title,CONFIG.ROB.title].forEach((t,i)=>{const d=document.createElement("div");d.className="tab"+(i===activeTab?" active":"");
+    d.textContent=t;d.onclick=()=>{activeTab=i;renderTabs();renderTab(i);};host.appendChild(d);});}
+function renderTab(i){i===0?renderKosh():renderRob();}
 
-function renderSheet(idx){
-  const s=model.sheets[idx],rows=s.rows,hr=s.cfg.headerRow,host=document.getElementById("sheetHost");
+/* ---- Кошторис: cascade A(group)->B(sub)->C(name)->G(price) ---- */
+function renderKosh(){
+  const K=CONFIG.KOSH,rows=model.kosh,hr=K.headerRow,host=document.getElementById("sheetHost");
   const header=(rows[hr]&&rows[hr].values)||[];
-  let ncol=header.length;rows.forEach(r=>ncol=Math.max(ncol,(r.values||[]).length));
-  const cols=[];for(let c=0;c<ncol;c++){const h=disp(header[c]);if(h==="")continue;
-    if(CONFIG.HIDE_HEADERS.some(rx=>rx.test(h)))continue;cols.push({c,label:h});}
-  if(!cols.length)for(let c=0;c<ncol;c++)cols.push({c,label:colL(c)});
-  const casc=s.cfg.cascade;
-  let block=0,html="<table><tr>"+cols.map(c=>`<th>${esc(c.label)}</th>`).join("")+"</tr>";
+  const cols=K.cols.filter(c=>{const h=disp(header[c]);return !CONFIG.HIDE.some(rx=>rx.test(h));});
+  const label=c=>{const h=disp(header[c]);if(c===K.GROUP)return h||"Група";if(c===K.SUB)return h||"Підгрупа";if(c===K.NAME)return h||"Найменування";if(c===K.PRICE)return h||"Ціна";return h||colL(c);};
+  let html="<table><tr>"+cols.map(c=>`<th>${esc(label(c))}</th>`).join("")+"</tr>";
+  let block=0;
   for(let r=hr+1;r<rows.length;r++){
     const cells=(rows[r]||{}).values||[];
-    const rowText=cols.map(c=>disp(cells[c.c])).join("").trim();
-    const anyInput=cols.some(c=>isInput(s.cfg,cells[c.c],c.c));
-    const filled=cols.filter(c=>disp(cells[c.c])!=="").length;
-    if(!anyInput&&filled<=1){ if(rowText===""&&filled===0)continue; block++; html+=`<tr class="grp"><td colspan="${cols.length}">${esc(rowText)}</td></tr>`; continue; }
+    const txt=cols.map(c=>disp(cells[c])).join("").trim();
+    const cascade=hasDV(cells[K.GROUP]);
+    const filled=cols.filter(c=>disp(cells[c])!=="").length;
+    const anyYellow=cols.some(c=>isFill(cells[c])&&!isFormula(cells[c]));
+    if(!cascade && !anyYellow && filled<=1){ if(txt===""&&filled===0)continue; block++; html+=`<tr class="grp"><td colspan="${cols.length}">${esc(txt)}</td></tr>`; continue; }
     html+="<tr>";
     cols.forEach(c=>{
-      const cell=cells[c.c];
-      const input=isInput(s.cfg,cell,c.c);
-      // cascade columns in Кошторис
-      if(input && casc && (c.c===casc.group||c.c===casc.sub||c.c===casc.equip)){
-        const role = c.c===casc.group?"group":(c.c===casc.sub?"sub":"equip");
-        html+=`<td><select class="f" data-role="${role}" data-sheet="${idx}" data-c="${c.c}" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cell))}</option></select></td>`;
-        return;
-      }
-      if(input){
-        const priceCol=/ці?на|price/i.test(c.label);
-        const annaZone = isFirstBlockPrice(block,priceCol);
-        const cls="f"+(annaZone?" annaf":"");
-        const dis = annaZone && !isAnna ? "disabled" : "";
-        html+=`<td class="${annaZone?'anna':''}"><input class="${cls}" value="${esc(disp(cell))}" ${dis} data-sheet="${idx}" data-c="${c.c}" data-r="${r}" data-price="${priceCol?1:0}" oninput="onEdit(this)"></td>`;
-        return;
-      }
+      if(cascade && c===K.GROUP){html+=`<td><select class="f" data-role="group" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cells[c]))}</option></select></td>`;return;}
+      if(cascade && c===K.SUB){html+=`<td><select class="f" data-role="sub" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cells[c]))}</option></select></td>`;return;}
+      if(cascade && c===K.NAME){html+=`<td><select class="f" data-role="name" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cells[c]))}</option></select></td>`;return;}
+      if(c===K.PRICE){html+=`<td class="pricecell" id="price_${r}">${esc(disp(cells[c]))}</td>`;return;}
+      const cell=cells[c];const yellow=isFill(cell)&&!isFormula(cell);
+      if(yellow){const priceLike=/ці?на|price/i.test(disp(header[c]));const annaZone=block===1&&priceLike;
+        const dis=annaZone&&!isAnna?"disabled":"";
+        html+=`<td class="${annaZone?'anna':''}"><input class="f${annaZone?' annaf':''}" value="${esc(disp(cell))}" ${dis} data-c="${c}" data-r="${r}" oninput="onEdit(this)"></td>`;return;}
       html+=`<td class="lock">${esc(disp(cell))}</td>`;
     });
     html+="</tr>";
   }
-  html+="</table>";
-  host.innerHTML=html;
-  // init cascade selects (fill group options)
-  if(casc) host.querySelectorAll('select[data-role="group"]').forEach(sel=>fillGroup(sel));
+  html+="</table>";host.innerHTML=html;
+  host.querySelectorAll('select[data-role="group"]').forEach(sel=>{const cur=sel.value;
+    sel.innerHTML=["" ].concat(Object.keys(hierarchy).sort()).map(o=>`<option ${o===cur?"selected":""}>${esc(o)}</option>`).join("");});
 }
-function isFirstBlockPrice(block,priceCol){return block===1 && priceCol;} // 1st group block, price columns = Anna zone
-function isInput(cfg,cell,c){
-  if(cfg.mode==="fill")return isFill(cell)&&!isFormula(cell);
-  if(cfg.mode==="col")return (cfg.inputCols||[]).includes(c)&&!isFormula(cell);
-  return false;
-}
-
-/* ---------- cascade ---------- */
-function fillGroup(sel){const cur=sel.value;const opts=[""].concat(Object.keys(hierarchy).sort());
-  sel.innerHTML=opts.map(o=>`<option ${o===cur?"selected":""}>${esc(o)}</option>`).join("");}
-function siblings(sel){const r=sel.dataset.r,idx=sel.dataset.sheet;
-  return {group:document.querySelector(`select[data-role="group"][data-r="${r}"][data-sheet="${idx}"]`),
-    sub:document.querySelector(`select[data-role="sub"][data-r="${r}"][data-sheet="${idx}"]`),
-    equip:document.querySelector(`select[data-role="equip"][data-r="${r}"][data-sheet="${idx}"]`)};}
-function onCascade(sel){
-  const sib=siblings(sel),role=sel.dataset.role;
-  if(role==="group"){
-    const subs=hierarchy[sel.value]?Object.keys(hierarchy[sel.value]).sort():[];
-    if(sib.sub)sib.sub.innerHTML=[""].concat(subs).map(o=>`<option>${esc(o)}</option>`).join("");
-    if(sib.equip)sib.equip.innerHTML=`<option></option>`;
-  }
-  if(role==="sub"){
-    const items=(hierarchy[sib.group.value]&&hierarchy[sib.group.value][sel.value])||[];
-    if(sib.equip)sib.equip.innerHTML=[""].concat(items.map(i=>i.name)).map(o=>`<option>${esc(o)}</option>`).join("");
-  }
-  if(role==="equip"){
-    const items=(hierarchy[sib.group.value]&&hierarchy[sib.group.value][sib.sub.value])||[];
-    const it=items.find(i=>i.name===sel.value);
-    if(it){ writeSupplierPrice(sel.dataset.sheet,sel.dataset.r,it); }
-  }
-  recordCascade(sib);
-}
-function recordCascade(sib){["group","sub","equip"].forEach(k=>{const el=sib[k];if(!el)return;
-  edits[key(el)]={range:A1(model.sheets[el.dataset.sheet].cfg.title,+el.dataset.c,+el.dataset.r),value:el.value};});}
-function writeSupplierPrice(idx,r,it){
-  const s=model.sheets[idx],header=(s.rows[s.cfg.headerRow].values)||[];
-  document.querySelectorAll(`#sheetHost input.f[data-sheet="${idx}"][data-r="${r}"]`).forEach(inp=>{
-    const h=disp(header[+inp.dataset.c]);
-    if(/постачальник|поставщик/i.test(h)&&it.supplier){inp.value=it.supplier;onEdit(inp);}
-    if(/ці?на|price/i.test(h)&&it.price!=null&&!(isFirstBlockPrice(1,true)&&!isAnna)){inp.value=it.price;onEdit(inp);}
-  });
+function sib(r,role){return document.querySelector(`select[data-role="${role}"][data-r="${r}"]`);}
+function onCascade(el){
+  const r=el.dataset.r,role=el.dataset.role,g=sib(r,"group"),s=sib(r,"sub"),n=sib(r,"name");
+  if(role==="group"){const subs=hierarchy[g.value]?Object.keys(hierarchy[g.value]).sort():[];
+    if(s)s.innerHTML=[""].concat(subs).map(o=>`<option>${esc(o)}</option>`).join("");if(n)n.innerHTML="<option></option>";}
+  if(role==="sub"){const items=(hierarchy[g.value]&&hierarchy[g.value][el.value])||[];
+    if(n)n.innerHTML=[""].concat(items.map(i=>i.name)).map(o=>`<option>${esc(o)}</option>`).join("");}
+  if(role==="name"){const items=(hierarchy[g.value]&&hierarchy[g.value][s.value])||[];const it=items.find(i=>i.name===el.value);
+    if(it&&it.price!=null){const pc=document.getElementById("price_"+r);if(pc)pc.textContent=it.price;
+      edits[CONFIG.KOSH.title+"!"+CONFIG.KOSH.PRICE+","+r]={range:A1(CONFIG.KOSH.title,CONFIG.KOSH.PRICE,+r),value:it.price};}}
+  [["group",g],["sub",s],["name",n]].forEach(([role2,elem])=>{if(!elem)return;const c=role2==="group"?CONFIG.KOSH.GROUP:role2==="sub"?CONFIG.KOSH.SUB:CONFIG.KOSH.NAME;
+    edits[CONFIG.KOSH.title+"!"+c+","+r]={range:A1(CONFIG.KOSH.title,c,+r),value:elem.value};});
 }
 
-/* ---------- edits ---------- */
-function key(el){return el.dataset.sheet+"!"+el.dataset.c+","+el.dataset.r;}
-function onEdit(el){const s=model.sheets[el.dataset.sheet];
-  edits[key(el)]={range:A1(s.cfg.title,+el.dataset.c,+el.dataset.r),value:el.value};}
+/* ---- Розрахунок: повний клон, стовпець C редагується ---- */
+function renderRob(){
+  const R=CONFIG.ROB,rows=model.rob,hr=R.headerRow,host=document.getElementById("sheetHost");
+  let ncol=0;rows.forEach(r=>ncol=Math.max(ncol,(r.values||[]).length));ncol=Math.min(ncol,8);
+  const header=(rows[hr]&&rows[hr].values)||[];
+  let html="<table><tr>";for(let c=0;c<ncol;c++)html+=`<th>${esc(disp(header[c])||colL(c))}</th>`;html+="</tr>";
+  for(let r=hr+1;r<rows.length;r++){
+    const cells=(rows[r]||{}).values||[];
+    const txt=[];for(let c=0;c<ncol;c++)txt.push(disp(cells[c]));
+    if(txt.join("").trim()==="")continue;
+    const isHeader=disp(cells[R.inputCol+1])===""&&disp(cells[0])===""&&disp(cells[1])!=="" && !isFill(cells[R.inputCol]);
+    if(isHeader){html+=`<tr class="grp"><td colspan="${ncol}">${esc(txt.join(" ").trim())}</td></tr>`;continue;}
+    html+="<tr>";
+    for(let c=0;c<ncol;c++){
+      const cell=cells[c];
+      if(c===R.inputCol){html+=`<td><input class="f" value="${esc(disp(cell))}" data-c="${c}" data-r="${r}" data-sheet="rob" oninput="onEdit(this)"></td>`;}
+      else html+=`<td class="lock">${esc(disp(cell))}</td>`;
+    }
+    html+="</tr>";
+  }
+  html+="</table>";host.innerHTML=html;
+}
 
-/* ---------- save (write back to SAME file) ---------- */
+/* edits + save */
+function onEdit(el){const sheet=el.dataset.sheet==="rob"?CONFIG.ROB.title:CONFIG.KOSH.title;
+  edits[sheet+"!"+el.dataset.c+","+el.dataset.r]={range:A1(sheet,+el.dataset.c,+el.dataset.r),value:el.value};}
 async function doSave(){
   const b=document.getElementById("save");b.disabled=true;setMsg("Зберігаю…");
-  try{
-    const data=Object.values(edits).filter(e=>e.value!=="").map(e=>({range:e.range,values:[[coerce(e.value)]]}));
+  try{const data=Object.values(edits).filter(e=>e.value!=="").map(e=>({range:e.range,values:[[coerce(e.value)]]}));
     if(data.length)await gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:fileId,resource:{valueInputOption:"USER_ENTERED",data}});
     setMsg("Збережено ✓");
-  }catch(e){setMsg("Помилка збереження: "+errText(e),true);}
-  b.disabled=false;
+  }catch(e){setMsg("Помилка збереження: "+errText(e),true);}b.disabled=false;
 }
 function coerce(v){const s=String(v).replace(",",".");if(v!==""&&!isNaN(s)&&/^-?\d+(\.\d+)?$/.test(s))return Number(s);return v;}
 </script>

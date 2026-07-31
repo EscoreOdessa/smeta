@@ -3,27 +3,26 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Кошторис — форма інженера (ESCORE)</title>
+<title>Кошторис — форма проєкту (ESCORE)</title>
 <style>
-  :root{
-    --input:#FFF2CC;--input-border:#E6D9A8;--lock:#F3F3F1;--line:#e2e2dd;
-    --ink:#2b2b28;--muted:#75736c;--accent:#1d7a56;--group:#eef4f0;--err:#b3261e;
-  }
+  :root{--input:#FFF2CC;--input-border:#E6D9A8;--lock:#F3F3F1;--line:#e2e2dd;
+    --ink:#2b2b28;--muted:#75736c;--accent:#1d7a56;--group:#eef4f0;--err:#b3261e;--anna:#efe7fb}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:#faf9f6}
-  header{padding:16px 22px;border-bottom:1px solid var(--line);background:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-  h1{font-size:18px;font-weight:600;margin:0}
+  header{padding:14px 22px;border-bottom:1px solid var(--line);background:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+  h1{font-size:17px;font-weight:600;margin:0}
   .sub{font-size:12px;color:var(--muted)}
-  .wrap{max-width:1160px;margin:0 auto;padding:18px 22px 90px}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 22px 96px}
   .btn{background:var(--accent);color:#fff;border:none;height:36px;padding:0 18px;border-radius:8px;font-size:14px;cursor:pointer;white-space:nowrap}
   .btn.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
   .btn:disabled{opacity:.5;cursor:default}
-  .proj{margin:14px 0}
-  .proj label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
-  .proj input{height:34px;border:1px solid var(--input-border);background:var(--input);border-radius:6px;padding:0 10px;font-size:14px;width:360px;max-width:100%}
-  .legend{display:flex;gap:18px;align-items:center;font-size:12px;color:var(--muted);margin:8px 0}
+  input,select{font-family:inherit}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .card h2{font-size:15px;margin:0 0 10px}
+  .ti{height:34px;border:1px solid var(--input-border);background:var(--input);border-radius:6px;padding:0 10px;font-size:14px;width:340px;max-width:100%}
+  .legend{display:flex;gap:16px;align-items:center;font-size:12px;color:var(--muted);margin:8px 0;flex-wrap:wrap}
   .sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1px solid #ccc}
-  .tabs{display:flex;gap:6px;margin:16px 0 0;border-bottom:2px solid var(--line);flex-wrap:wrap}
+  .tabs{display:flex;gap:6px;margin:14px 0 0;border-bottom:2px solid var(--line);flex-wrap:wrap}
   .tab{padding:9px 15px;font-size:14px;cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;color:var(--muted)}
   .tab.active{background:#fff;border-color:var(--line);color:var(--ink);font-weight:600;margin-bottom:-2px}
   .panel{background:#fff;border:1px solid var(--line);border-top:none;overflow-x:auto;min-height:120px}
@@ -32,272 +31,317 @@
   td{padding:4px 8px;border-bottom:1px solid #f0efe9;vertical-align:middle}
   tr.grp td{background:var(--group);font-weight:600;color:#234}
   td.lock{color:#555}
-  input.f,select.f{width:100%;min-width:70px;height:30px;border:1px solid var(--input-border);background:var(--input);border-radius:5px;padding:0 8px;font-size:13px}
+  td.anna{background:var(--anna)}
+  input.f,select.f{width:100%;min-width:80px;height:30px;border:1px solid var(--input-border);background:var(--input);border-radius:5px;padding:0 8px;font-size:13px}
+  input.f.annaf{background:var(--anna);border-color:#c9b8ee}
   input.f:focus,select.f:focus{outline:2px solid #d8c874}
+  input.f:disabled{background:#f3f3f1;border-color:#e2e2dd;color:#999}
   .status{padding:20px;color:var(--muted);font-size:14px}
   .bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:10px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .msg{font-size:13px}
-  .msg.err{color:var(--err)}
+  .msg{font-size:13px}.msg.err{color:var(--err)}
   .hidden{display:none}
-  .gate{max-width:520px;margin:60px auto;text-align:center}
+  .gate{max-width:560px;margin:52px auto;text-align:center}
   .gate p{color:var(--muted);font-size:14px;line-height:1.6}
+  .projlist button{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin:6px 0;cursor:pointer;font-size:14px}
+  .projlist button:hover{background:#f5f5f0}
+  a{color:var(--accent)}
 </style>
 </head>
 <body>
 <header>
-  <div><h1>Кошторис — форма інженера · ESCORE</h1><div class="sub">Заповнюються лише підсвічені жовтим поля. Структуру шаблону змінити не можна.</div></div>
+  <div><h1>Кошторис проєкту · ESCORE</h1><div class="sub" id="projname">Заповнюються лише підсвічені поля. Структуру не зламати.</div></div>
   <div id="acct" class="sub"></div>
 </header>
 
 <div class="wrap">
+  <!-- SIGN IN -->
   <div id="gate" class="gate">
-    <p>Увійдіть через робочий Google-акаунт, щоб завантажити актуальний шаблон і зберегти заповнений кошторис на Google Drive.</p>
-    <button class="btn" id="signin">Увійти через Google</button>
+    <p>Увійдіть через робочий Google-акаунт, щоб створити або відкрити проєкт.</p>
+    <button class="btn" id="signin" disabled>Увійти через Google</button>
     <p id="gateerr" class="msg err"></p>
   </div>
 
-  <div id="app" class="hidden">
-    <div class="proj">
-      <label>Проєкт № / назва — це папка на Google Drive (у «Проекти»)</label>
-      <input id="proj" placeholder="напр. 1245 Іваненко, Одеса" />
+  <!-- CHOOSER -->
+  <div id="chooser" class="hidden">
+    <div class="card">
+      <h2>Створити новий проєкт</h2>
+      <div class="sub" style="margin-bottom:8px">Копіює шаблон у папку «Проекти» на Google Drive. Зазвичай робить проєктант.</div>
+      <input class="ti" id="newproj" placeholder="№ / назва проєкту, напр. 1245 Іваненко, Одеса">
+      <button class="btn" id="create" style="margin-left:8px">Створити проєкт</button>
     </div>
+    <div class="card">
+      <h2>Відкрити наявний проєкт</h2>
+      <div class="sub" style="margin-bottom:8px">Оберіть проєкт зі списку або вставте посилання на файл.</div>
+      <button class="btn ghost" id="loadlist">Показати список проєктів</button>
+      <div class="projlist" id="projlist"></div>
+      <div style="margin-top:10px">
+        <input class="ti" id="openlink" placeholder="або вставте посилання на файл проєкту">
+        <button class="btn ghost" id="openbylink" style="margin-left:8px">Відкрити</button>
+      </div>
+    </div>
+    <p id="chooserr" class="msg err"></p>
+  </div>
+
+  <!-- EDITOR -->
+  <div id="app" class="hidden">
     <div class="legend">
       <span><span class="sw" style="background:#FFF2CC"></span>поле вводу</span>
       <span><span class="sw" style="background:#F3F3F1"></span>розрахунок / формула (заблоковано)</span>
+      <span id="annaleg" class="hidden"><span class="sw" style="background:#efe7fb"></span>ваша зона (ціни 1-го блоку, панелі)</span>
     </div>
     <div class="tabs" id="tabs"></div>
-    <div class="panel"><div id="sheetHost"><div class="status">Завантаження шаблону…</div></div></div>
+    <div class="panel"><div id="sheetHost"><div class="status">Завантаження…</div></div></div>
   </div>
 </div>
 
 <div class="bar hidden" id="bar">
   <span class="msg" id="msg"></span>
   <span style="display:flex;gap:10px">
-    <button class="btn ghost" id="signout">Вийти</button>
-    <button class="btn" id="save" disabled>Зберегти на Drive</button>
+    <button class="btn ghost" id="back">До проєктів</button>
+    <button class="btn" id="save" disabled>Зберегти</button>
   </span>
 </div>
 
 <script src="https://apis.google.com/js/api.js"></script>
 <script src="https://accounts.google.com/gsi/client"></script>
 <script>
-/* ================== КОНФІГ ==================
-   Якщо колись зміниться майстер-шаблон — заміни TEMPLATE_ID.
-   Поля вводу визначаються так:
-   - Кошторис: клітинки із жовтою заливкою #FFF2CC;
-   - Розрахунок: стовпець C (фіксовано).
-   Випадаючі списки та формули читаються з самого шаблону.            */
 const CONFIG = {
-  CLIENT_ID: "758495999284-fnsq0qf281d7vcd84hu7ri6eu2189psg.apps.googleusercontent.com",
-  TEMPLATE_ID: "1CM9f2xcyIr9l_64hLZ6BiugC1GG71AwkWlepUYcux_0",
-  SCOPES: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
-  PARENT_FOLDER: "Проекти",
-  REFERENCE_SHEET: "Довідник обладнання та цін",
-  INPUT_FILL: { r: 1, g: 0.9490, b: 0.8 },      // #FFF2CC
-  SHEETS: [
-    { title: "Кошторис_Наявність обладнання", headerRow: 1, mode: "fill" },
-    { title: "Розрахунок монтажних робіт", headerRow: 0, mode: "col", inputCols: [2] } // C = index 2
+  CLIENT_ID:"758495999284-fnsq0qf281d7vcd84hu7ri6eu2189psg.apps.googleusercontent.com",
+  TEMPLATE_ID:"1CM9f2xcyIr9l_64hLZ6BiugC1GG71AwkWlepUYcux_0",
+  SCOPES:"openid email https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
+  PARENT_FOLDER:"Проекти",
+  REFERENCE_SHEET:"Довідник обладнання та цін",
+  ANNA_EMAIL:"anna.escore@gmail.com",
+  REF:{group:0,name:1,supplier:2,price:3,subgroup:6},   // Довідник A,B,C,D,G
+  INPUT_FILL:{r:1,g:0.949,b:0.8},                        // #FFF2CC
+  HIDE_HEADERS:[/наявн/i,/оновлюються автомат/i,/вартість/i],  // columns to hide in web
+  SHEETS:[
+    {title:"Кошторис_Наявність обладнання", headerRow:1, mode:"fill", cascade:{group:0,sub:1,equip:2}},
+    {title:"Розрахунок монтажних робіт", headerRow:0, mode:"col", inputCols:[2]}
   ]
 };
 
-let tokenClient, accessToken = null, model = null, activeTab = 0;
-const edits = {}; // key "sheetTitle!col,row" -> {a1, value, sheetTitle}
+let tokenClient, accessToken=null, userEmail=null, isAnna=false;
+let fileId=null, model=null, activeTab=0, hierarchy=null;
+const edits={};
 
 /* ---------- helpers ---------- */
-function colLetter(i){ let s=""; i++; while(i){ let m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=(i-m-1)/26; } return s; }
-function a1(sheet,c,r){ return "'"+sheet.replace(/'/g,"''")+"'!"+colLetter(c)+(r+1); }
-function nearly(a,b){ return Math.abs(a-b)<0.02; }
-function isInputFill(cell){
-  const f = cell && cell.userEnteredFormat;
-  const bg = f && (f.backgroundColorStyle && f.backgroundColorStyle.rgbColor || f.backgroundColor);
-  if(!bg) return false;
-  const r=bg.red||0, g=bg.green||0, b=bg.blue||0;
-  return nearly(r,CONFIG.INPUT_FILL.r)&&nearly(g,CONFIG.INPUT_FILL.g)&&nearly(b,CONFIG.INPUT_FILL.b);
-}
-function isFormula(cell){ return !!(cell && cell.userEnteredValue && cell.userEnteredValue.formulaValue); }
-function disp(cell){ if(!cell) return ""; if(cell.formattedValue!=null) return cell.formattedValue;
-  const e=cell.effectiveValue||cell.userEnteredValue; if(!e) return "";
-  return e.stringValue!=null?e.stringValue:(e.numberValue!=null?e.numberValue:(e.boolValue!=null?e.boolValue:"")); }
-function dropdown(cell){
-  const dv = cell && cell.dataValidation; if(!dv||!dv.condition) return null;
-  const t = dv.condition.type;
-  if(t==="ONE_OF_LIST") return (dv.condition.values||[]).map(v=>v.userEnteredValue);
-  if(t==="ONE_OF_RANGE"){ const ref=(dv.condition.values&&dv.condition.values[0]||{}).userEnteredValue||""; return {range:ref}; }
-  return null;
-}
+function colL(i){let s="";i++;while(i){let m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=(i-m-1)/26;}return s;}
+function A1(sheet,c,r){return "'"+sheet.replace(/'/g,"''")+"'!"+colL(c)+(r+1);}
+function nearly(a,b){return Math.abs(a-b)<0.02;}
+function isFill(cell){const f=cell&&cell.userEnteredFormat;const bg=f&&(f.backgroundColorStyle&&f.backgroundColorStyle.rgbColor||f.backgroundColor);
+  if(!bg)return false;const r=bg.red||0,g=bg.green||0,b=bg.blue||0;
+  return nearly(r,CONFIG.INPUT_FILL.r)&&nearly(g,CONFIG.INPUT_FILL.g)&&nearly(b,CONFIG.INPUT_FILL.b);}
+function isFormula(cell){return !!(cell&&cell.userEnteredValue&&cell.userEnteredValue.formulaValue);}
+function disp(cell){if(!cell)return "";if(cell.formattedValue!=null)return cell.formattedValue;
+  const e=cell.effectiveValue||cell.userEnteredValue;if(!e)return "";
+  return e.stringValue!=null?e.stringValue:(e.numberValue!=null?e.numberValue:"");}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function setMsg(t,err){const m=document.getElementById("msg");m.textContent=t;m.className="msg"+(err?" err":"");}
 
 /* ---------- auth ---------- */
-function initGis(){
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CONFIG.CLIENT_ID, scope: CONFIG.SCOPES,
-    callback: (resp)=>{ if(resp.error){ showGateErr(resp.error); return; }
-      accessToken = resp.access_token; gapi.client.setToken({access_token:accessToken});
-      onSignedIn(); }
-  });
-}
-function gapiLoad(){ gapi.load("client", async ()=>{
-  await gapi.client.init({ discoveryDocs:[
+window.addEventListener("load",()=>{
+  gapi.load("client",async()=>{await gapi.client.init({discoveryDocs:[
     "https://sheets.googleapis.com/$discovery/rest?version=v4",
-    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest" ]});
-  document.getElementById("signin").disabled=false;
-});}
-function showGateErr(e){ document.getElementById("gateerr").textContent = "Помилка входу: "+e; }
-window.addEventListener("load", ()=>{ gapiLoad(); initGis();
+    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]});
+    document.getElementById("signin").disabled=false;});
+  tokenClient=google.accounts.oauth2.initTokenClient({client_id:CONFIG.CLIENT_ID,scope:CONFIG.SCOPES,
+    callback:async(resp)=>{if(resp.error){document.getElementById("gateerr").textContent="Помилка входу: "+resp.error;return;}
+      accessToken=resp.access_token;gapi.client.setToken({access_token:accessToken});await afterSignIn();}});
   document.getElementById("signin").onclick=()=>tokenClient.requestAccessToken({prompt:"consent"});
-  document.getElementById("signout").onclick=doSignOut;
+  document.getElementById("create").onclick=createProject;
+  document.getElementById("loadlist").onclick=listProjects;
+  document.getElementById("openbylink").onclick=()=>{const id=extractId(document.getElementById("openlink").value);if(id)openProject(id);else setChooserErr("Не розпізнав посилання.");};
   document.getElementById("save").onclick=doSave;
+  document.getElementById("back").onclick=()=>location.href=location.pathname;
 });
-function doSignOut(){ if(accessToken){ google.accounts.oauth2.revoke(accessToken,()=>{}); }
-  accessToken=null; location.reload(); }
-
-async function onSignedIn(){
+async function afterSignIn(){
+  try{const info=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+accessToken}}).then(r=>r.json());
+    userEmail=(info.email||"").toLowerCase();}catch(e){userEmail="";}
+  isAnna = userEmail===CONFIG.ANNA_EMAIL.toLowerCase();
+  document.getElementById("acct").textContent=userEmail+(isAnna?" · режим: розрахунок цін":" · режим: заповнення");
   document.getElementById("gate").classList.add("hidden");
+  const urlId=new URLSearchParams(location.search).get("id");
+  if(urlId){ openProject(urlId); } else { document.getElementById("chooser").classList.remove("hidden"); }
+}
+function setChooserErr(t){document.getElementById("chooserr").textContent=t||"";}
+function extractId(s){if(!s)return null;const m=String(s).match(/[-\w]{25,}/);return m?m[0]:null;}
+
+/* ---------- create / open ---------- */
+async function ensureFolder(name,parentId){
+  let q=`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  if(parentId)q+=` and '${parentId}' in parents`;
+  const r=await gapi.client.drive.files.list({q,fields:"files(id,name)"});
+  if((r.result.files||[]).length)return r.result.files[0].id;
+  const meta={name,mimeType:"application/vnd.google-apps.folder"};if(parentId)meta.parents=[parentId];
+  const c=await gapi.client.drive.files.create({resource:meta,fields:"id"});return c.result.id;
+}
+async function createProject(){
+  const name=document.getElementById("newproj").value.trim();
+  if(!name){setChooserErr("Вкажіть № / назву проєкту.");return;}
+  setChooserErr("");document.getElementById("create").disabled=true;
+  try{
+    const parent=await ensureFolder(CONFIG.PARENT_FOLDER,null);
+    const folder=await ensureFolder(name,parent);
+    const copy=await gapi.client.drive.files.copy({fileId:CONFIG.TEMPLATE_ID,resource:{name:name+" — Кошторис",parents:[folder]}});
+    openProject(copy.result.id);
+  }catch(e){setChooserErr("Не вдалося створити: "+errText(e));document.getElementById("create").disabled=false;}
+}
+async function listProjects(){
+  setChooserErr("");const host=document.getElementById("projlist");host.innerHTML="Завантаження…";
+  try{
+    const p=await gapi.client.drive.files.list({q:`name='${CONFIG.PARENT_FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:"files(id)"});
+    const parent=(p.result.files||[])[0];if(!parent){host.innerHTML="Папку «Проекти» не знайдено.";return;}
+    const subs=await gapi.client.drive.files.list({q:`'${parent.id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:"files(id,name)",orderBy:"name"});
+    const folders=subs.result.files||[];
+    if(!folders.length){host.innerHTML="Проєктів поки немає.";return;}
+    host.innerHTML="";
+    folders.forEach(f=>{const b=document.createElement("button");b.textContent=f.name;
+      b.onclick=async()=>{const sp=await gapi.client.drive.files.list({q:`'${f.id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,fields:"files(id,name)"});
+        const file=(sp.result.files||[])[0];if(file)openProject(file.id);else setChooserErr("У папці «"+f.name+"» немає таблиці.");};
+      host.appendChild(b);});
+  }catch(e){host.innerHTML="";setChooserErr("Помилка списку: "+errText(e));}
+}
+function errText(e){return (e&&e.result&&e.result.error&&e.result.error.message)||e.message||String(e);}
+
+/* ---------- load project file ---------- */
+async function openProject(id){
+  fileId=id;
+  document.getElementById("chooser").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
   document.getElementById("bar").classList.remove("hidden");
-  try{ await loadTemplate(); }catch(e){ setMsg("Не вдалося прочитати шаблон: "+(e.message||e), true); }
+  if(isAnna)document.getElementById("annaleg").classList.remove("hidden");
+  try{
+    const meta=await gapi.client.drive.files.get({fileId:id,fields:"name,webViewLink"});
+    document.getElementById("projname").innerHTML="Проєкт: <b>"+esc(meta.result.name)+"</b> · <a href='"+location.pathname+"?id="+id+"'>посилання для інженера</a>";
+    await loadGrid(id);
+  }catch(e){setMsg("Не вдалося відкрити: "+errText(e),true);}
 }
-function setMsg(t,err){ const m=document.getElementById("msg"); m.textContent=t; m.className="msg"+(err?" err":""); }
-
-/* ---------- read template ---------- */
-async function loadTemplate(){
-  const ranges = CONFIG.SHEETS.map(s=>s.title).concat([CONFIG.REFERENCE_SHEET]);
-  const resp = await gapi.client.sheets.spreadsheets.get({
-    spreadsheetId: CONFIG.TEMPLATE_ID, ranges, includeGridData:true,
-    fields:"sheets(properties(title),data(rowData(values(formattedValue,userEnteredValue,effectiveValue,userEnteredFormat.backgroundColorStyle,userEnteredFormat.backgroundColor,dataValidation))))"
-  });
-  const byTitle={}; (resp.result.sheets||[]).forEach(sh=>{ byTitle[sh.properties.title]=(sh.data&&sh.data[0]&&sh.data[0].rowData)||[]; });
-  model = { sheets:[], ref: byTitle[CONFIG.REFERENCE_SHEET]||[] };
-  CONFIG.SHEETS.forEach(cfg=>{ model.sheets.push({ cfg, rows: byTitle[cfg.title]||[] }); });
-  buildRefIndex();
-  renderTabs(); renderSheet(0);
+async function loadGrid(id){
+  const ranges=CONFIG.SHEETS.map(s=>s.title).concat([CONFIG.REFERENCE_SHEET]);
+  const resp=await gapi.client.sheets.spreadsheets.get({spreadsheetId:id,ranges,includeGridData:true,
+    fields:"sheets(properties(title),data(rowData(values(formattedValue,userEnteredValue,effectiveValue,userEnteredFormat.backgroundColorStyle,userEnteredFormat.backgroundColor,dataValidation))))"});
+  const byT={};(resp.result.sheets||[]).forEach(sh=>{byT[sh.properties.title]=(sh.data&&sh.data[0]&&sh.data[0].rowData)||[];});
+  model={sheets:CONFIG.SHEETS.map(cfg=>({cfg,rows:byT[cfg.title]||[]})),ref:byT[CONFIG.REFERENCE_SHEET]||[]};
+  buildHierarchy();
+  renderTabs();renderSheet(0);
   document.getElementById("save").disabled=false;
-  setMsg("Шаблон завантажено. Заповніть жовті поля.");
+  setMsg("Завантажено. Заповніть жовті поля.");
 }
-
-/* Довідник: назва позиції -> ціна (стовпці B=назва, D=ціна) */
-let refIndex={};
-function buildRefIndex(){ refIndex={};
-  (model.ref||[]).forEach(r=>{ const v=r.values||[]; const name=disp(v[1]); const price=v[3]&&(v[3].effectiveValue||v[3].userEnteredValue);
-    if(name && price && price.numberValue!=null) refIndex[String(name).trim()]=price.numberValue; });
+function buildHierarchy(){
+  hierarchy={};const R=CONFIG.REF;
+  (model.ref||[]).slice(1).forEach(r=>{const v=r.values||[];const g=disp(v[R.group]),sub=disp(v[R.subgroup])||"—",name=disp(v[R.name]);
+    const price=v[R.price]&&(v[R.price].effectiveValue||v[R.price].userEnteredValue);const sup=disp(v[R.supplier]);
+    if(!g||!name)return;hierarchy[g]=hierarchy[g]||{};hierarchy[g][sub]=hierarchy[g][sub]||[];
+    hierarchy[g][sub].push({name,supplier:sup,price:price&&price.numberValue!=null?price.numberValue:null});});
 }
 
 /* ---------- render ---------- */
-function renderTabs(){ const host=document.getElementById("tabs"); host.innerHTML="";
-  model.sheets.forEach((s,i)=>{ const d=document.createElement("div"); d.className="tab"+(i===activeTab?" active":"");
-    d.textContent=s.cfg.title; d.onclick=()=>{activeTab=i;renderTabs();renderSheet(i);}; host.appendChild(d); });
-}
-function resolveRangeOptions(ref){
-  // ref like "='Довідник обладнання та цін'!B2:B" -> pull column values from reference sheet
-  try{ const m=ref.match(/!\s*([A-Z]+)(\d+):([A-Z]+)?/); if(!m) return [];
-    const col=m[1].replace(/[0-9]/g,""); const ci=col.split("").reduce((a,ch)=>a*26+(ch.charCodeAt(0)-64),0)-1;
-    const out=[]; (model.ref||[]).forEach(r=>{ const c=(r.values||[])[ci]; const v=disp(c); if(v) out.push(v); });
-    return Array.from(new Set(out));
-  }catch(e){ return []; }
-}
-function renderSheet(idx){
-  const s=model.sheets[idx], host=document.getElementById("sheetHost");
-  const rows=s.rows, hr=s.cfg.headerRow;
-  const header=(rows[hr]&&rows[hr].values)||[];
-  let ncol=0; rows.forEach(r=>{ ncol=Math.max(ncol,(r.values||[]).length); });
-  ncol=Math.max(ncol, header.length);
-  // columns with a header label
-  const cols=[]; for(let c=0;c<ncol;c++){ const h=disp(header[c]); if(h!=="") cols.push({c,label:h}); }
-  if(cols.length===0){ for(let c=0;c<ncol;c++) cols.push({c,label:colLetter(c)}); }
+function renderTabs(){const host=document.getElementById("tabs");host.innerHTML="";
+  model.sheets.forEach((s,i)=>{const d=document.createElement("div");d.className="tab"+(i===activeTab?" active":"");
+    d.textContent=s.cfg.title;d.onclick=()=>{activeTab=i;renderTabs();renderSheet(i);};host.appendChild(d);});}
 
-  let html="<table><tr>"+cols.map(c=>`<th>${esc(c.label)}</th>`).join("")+"</tr>";
+function renderSheet(idx){
+  const s=model.sheets[idx],rows=s.rows,hr=s.cfg.headerRow,host=document.getElementById("sheetHost");
+  const header=(rows[hr]&&rows[hr].values)||[];
+  let ncol=header.length;rows.forEach(r=>ncol=Math.max(ncol,(r.values||[]).length));
+  const cols=[];for(let c=0;c<ncol;c++){const h=disp(header[c]);if(h==="")continue;
+    if(CONFIG.HIDE_HEADERS.some(rx=>rx.test(h)))continue;cols.push({c,label:h});}
+  if(!cols.length)for(let c=0;c<ncol;c++)cols.push({c,label:colL(c)});
+  const casc=s.cfg.cascade;
+  let block=0,html="<table><tr>"+cols.map(c=>`<th>${esc(c.label)}</th>`).join("")+"</tr>";
   for(let r=hr+1;r<rows.length;r++){
     const cells=(rows[r]||{}).values||[];
     const rowText=cols.map(c=>disp(cells[c.c])).join("").trim();
-    if(rowText==="") continue;
-    // group header: a row that has text only in the first column(s) and no input cells
     const anyInput=cols.some(c=>isInput(s.cfg,cells[c.c],c.c));
-    const filledCells=cols.filter(c=>disp(cells[c.c])!=="").length;
-    if(!anyInput && filledCells<=1){ html+=`<tr class="grp"><td colspan="${cols.length}">${esc(rowText)}</td></tr>`; continue; }
+    const filled=cols.filter(c=>disp(cells[c.c])!=="").length;
+    if(!anyInput&&filled<=1){ if(rowText===""&&filled===0)continue; block++; html+=`<tr class="grp"><td colspan="${cols.length}">${esc(rowText)}</td></tr>`; continue; }
     html+="<tr>";
     cols.forEach(c=>{
       const cell=cells[c.c];
-      if(isInput(s.cfg,cell,c.c)){
-        const dd=dropdown(cell);
-        const cur=disp(cell);
-        const id=`in_${idx}_${c.c}_${r}`;
-        if(dd){ let opts = Array.isArray(dd)?dd:resolveRangeOptions(dd.range);
-          opts=[""].concat(opts.filter(o=>o!==""));
-          html+=`<td><select class="f" data-sheet="${idx}" data-c="${c.c}" data-r="${r}" onchange="onEdit(this)">`+
-            opts.map(o=>`<option ${o===cur?"selected":""}>${esc(o)}</option>`).join("")+`</select></td>`;
-        } else {
-          html+=`<td><input class="f" value="${esc(cur)}" data-sheet="${idx}" data-c="${c.c}" data-r="${r}" oninput="onEdit(this)"></td>`;
-        }
-      } else {
-        html+=`<td class="lock">${esc(disp(cell))}</td>`;
+      const input=isInput(s.cfg,cell,c.c);
+      // cascade columns in Кошторис
+      if(input && casc && (c.c===casc.group||c.c===casc.sub||c.c===casc.equip)){
+        const role = c.c===casc.group?"group":(c.c===casc.sub?"sub":"equip");
+        html+=`<td><select class="f" data-role="${role}" data-sheet="${idx}" data-c="${c.c}" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cell))}</option></select></td>`;
+        return;
       }
+      if(input){
+        const priceCol=/ці?на|price/i.test(c.label);
+        const annaZone = isFirstBlockPrice(block,priceCol);
+        const cls="f"+(annaZone?" annaf":"");
+        const dis = annaZone && !isAnna ? "disabled" : "";
+        html+=`<td class="${annaZone?'anna':''}"><input class="${cls}" value="${esc(disp(cell))}" ${dis} data-sheet="${idx}" data-c="${c.c}" data-r="${r}" data-price="${priceCol?1:0}" oninput="onEdit(this)"></td>`;
+        return;
+      }
+      html+=`<td class="lock">${esc(disp(cell))}</td>`;
     });
     html+="</tr>";
   }
   html+="</table>";
   host.innerHTML=html;
+  // init cascade selects (fill group options)
+  if(casc) host.querySelectorAll('select[data-role="group"]').forEach(sel=>fillGroup(sel));
 }
+function isFirstBlockPrice(block,priceCol){return block===1 && priceCol;} // 1st group block, price columns = Anna zone
 function isInput(cfg,cell,c){
-  if(cfg.mode==="fill") return isInputFill(cell) && !isFormula(cell);
-  if(cfg.mode==="col") return (cfg.inputCols||[]).includes(c) && !isFormula(cell);
+  if(cfg.mode==="fill")return isFill(cell)&&!isFormula(cell);
+  if(cfg.mode==="col")return (cfg.inputCols||[]).includes(c)&&!isFormula(cell);
   return false;
 }
-function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 
-/* record edit + price auto-fill for Кошторис dropdowns */
-function onEdit(el){
-  const si=+el.dataset.sheet, c=+el.dataset.c, r=+el.dataset.r;
-  const s=model.sheets[si];
-  const key=s.cfg.title+"!"+c+","+r;
-  edits[key]={ range:a1(s.cfg.title,c,r), value:el.value };
-  // price auto-fill: if this is a Довідник dropdown selection, put its price into the price cell of the same row
-  if(el.tagName==="SELECT" && refIndex[el.value]!=null){
-    const priceCell=findPriceInput(si,r);
-    if(priceCell){ priceCell.value=refIndex[el.value]; onEdit(priceCell); }
+/* ---------- cascade ---------- */
+function fillGroup(sel){const cur=sel.value;const opts=[""].concat(Object.keys(hierarchy).sort());
+  sel.innerHTML=opts.map(o=>`<option ${o===cur?"selected":""}>${esc(o)}</option>`).join("");}
+function siblings(sel){const r=sel.dataset.r,idx=sel.dataset.sheet;
+  return {group:document.querySelector(`select[data-role="group"][data-r="${r}"][data-sheet="${idx}"]`),
+    sub:document.querySelector(`select[data-role="sub"][data-r="${r}"][data-sheet="${idx}"]`),
+    equip:document.querySelector(`select[data-role="equip"][data-r="${r}"][data-sheet="${idx}"]`)};}
+function onCascade(sel){
+  const sib=siblings(sel),role=sel.dataset.role;
+  if(role==="group"){
+    const subs=hierarchy[sel.value]?Object.keys(hierarchy[sel.value]).sort():[];
+    if(sib.sub)sib.sub.innerHTML=[""].concat(subs).map(o=>`<option>${esc(o)}</option>`).join("");
+    if(sib.equip)sib.equip.innerHTML=`<option></option>`;
   }
+  if(role==="sub"){
+    const items=(hierarchy[sib.group.value]&&hierarchy[sib.group.value][sel.value])||[];
+    if(sib.equip)sib.equip.innerHTML=[""].concat(items.map(i=>i.name)).map(o=>`<option>${esc(o)}</option>`).join("");
+  }
+  if(role==="equip"){
+    const items=(hierarchy[sib.group.value]&&hierarchy[sib.group.value][sib.sub.value])||[];
+    const it=items.find(i=>i.name===sel.value);
+    if(it){ writeSupplierPrice(sel.dataset.sheet,sel.dataset.r,it); }
+  }
+  recordCascade(sib);
 }
-function findPriceInput(si,r){
-  // heuristic: an input in the same row whose header contains "Ціна"
-  const inputs=document.querySelectorAll(`#sheetHost input.f[data-sheet="${si}"][data-r="${r}"]`);
-  const s=model.sheets[si]; const header=(s.rows[s.cfg.headerRow].values)||[];
-  for(const inp of inputs){ const h=disp(header[+inp.dataset.c]); if(/ці?на|price/i.test(h)) return inp; }
-  return null;
+function recordCascade(sib){["group","sub","equip"].forEach(k=>{const el=sib[k];if(!el)return;
+  edits[key(el)]={range:A1(model.sheets[el.dataset.sheet].cfg.title,+el.dataset.c,+el.dataset.r),value:el.value};});}
+function writeSupplierPrice(idx,r,it){
+  const s=model.sheets[idx],header=(s.rows[s.cfg.headerRow].values)||[];
+  document.querySelectorAll(`#sheetHost input.f[data-sheet="${idx}"][data-r="${r}"]`).forEach(inp=>{
+    const h=disp(header[+inp.dataset.c]);
+    if(/постачальник|поставщик/i.test(h)&&it.supplier){inp.value=it.supplier;onEdit(inp);}
+    if(/ці?на|price/i.test(h)&&it.price!=null&&!(isFirstBlockPrice(1,true)&&!isAnna)){inp.value=it.price;onEdit(inp);}
+  });
 }
 
-/* ---------- save: copy template -> folder -> write inputs ---------- */
+/* ---------- edits ---------- */
+function key(el){return el.dataset.sheet+"!"+el.dataset.c+","+el.dataset.r;}
+function onEdit(el){const s=model.sheets[el.dataset.sheet];
+  edits[key(el)]={range:A1(s.cfg.title,+el.dataset.c,+el.dataset.r),value:el.value};}
+
+/* ---------- save (write back to SAME file) ---------- */
 async function doSave(){
-  const proj=document.getElementById("proj").value.trim();
-  if(!proj){ setMsg("Вкажіть № / назву проєкту.",true); return; }
-  const btn=document.getElementById("save"); btn.disabled=true; setMsg("Зберігаю…");
+  const b=document.getElementById("save");b.disabled=true;setMsg("Зберігаю…");
   try{
-    const copy=await gapi.client.drive.files.copy({fileId:CONFIG.TEMPLATE_ID,
-      resource:{name:proj+" — Кошторис"}});
-    const newId=copy.result.id;
-    const folderId=await ensureProjectFolder(proj);
-    if(folderId){ await gapi.client.drive.files.update({fileId:newId,addParents:folderId,removeParents:copy.result.parents?copy.result.parents.join(","):undefined,fields:"id,parents"}); }
-    const data=Object.values(edits).map(e=>({range:e.range, values:[[coerce(e.value)]]}));
-    if(data.length){ await gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:newId,
-      resource:{valueInputOption:"USER_ENTERED", data}}); }
-    const link="https://docs.google.com/spreadsheets/d/"+newId+"/edit";
-    setMsg("Збережено ✓ ");
-    const m=document.getElementById("msg"); const a=document.createElement("a"); a.href=link; a.target="_blank"; a.textContent="відкрити таблицю"; a.style.marginLeft="6px"; m.appendChild(a);
-  }catch(e){ setMsg("Помилка збереження: "+(e.result&&e.result.error&&e.result.error.message||e.message||e),true); }
-  btn.disabled=false;
+    const data=Object.values(edits).filter(e=>e.value!=="").map(e=>({range:e.range,values:[[coerce(e.value)]]}));
+    if(data.length)await gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:fileId,resource:{valueInputOption:"USER_ENTERED",data}});
+    setMsg("Збережено ✓");
+  }catch(e){setMsg("Помилка збереження: "+errText(e),true);}
+  b.disabled=false;
 }
-function coerce(v){ if(v!=="" && !isNaN(v) && /^-?\d+(\.\d+)?$/.test(String(v).replace(",","."))) return Number(String(v).replace(",",".")); return v; }
-async function ensureProjectFolder(proj){
-  // find parent "Проекти"
-  const p=await gapi.client.drive.files.list({q:`name='${CONFIG.PARENT_FOLDER.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:"files(id,name)"});
-  const parent=(p.result.files||[])[0];
-  const parentId=parent?parent.id:null;
-  // find/create project subfolder
-  let q=`name='${proj.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  if(parentId) q+=` and '${parentId}' in parents`;
-  const f=await gapi.client.drive.files.list({q,fields:"files(id,name)"});
-  if((f.result.files||[]).length) return f.result.files[0].id;
-  const meta={name:proj,mimeType:"application/vnd.google-apps.folder"}; if(parentId) meta.parents=[parentId];
-  const created=await gapi.client.drive.files.create({resource:meta,fields:"id"});
-  return created.result.id;
-}
+function coerce(v){const s=String(v).replace(",",".");if(v!==""&&!isNaN(s)&&/^-?\d+(\.\d+)?$/.test(s))return Number(s);return v;}
 </script>
 </body>
 </html>

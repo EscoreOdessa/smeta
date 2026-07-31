@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Кошторис — форма інженера (ESCORE)</title>
+<style>
+  :root{
+    --input:#FFF2CC;--input-border:#E6D9A8;--lock:#F3F3F1;--line:#e2e2dd;
+    --ink:#2b2b28;--muted:#75736c;--accent:#1d7a56;--group:#eef4f0;--err:#b3261e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:#faf9f6}
+  header{padding:16px 22px;border-bottom:1px solid var(--line);background:#fff;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+  h1{font-size:18px;font-weight:600;margin:0}
+  .sub{font-size:12px;color:var(--muted)}
+  .wrap{max-width:1160px;margin:0 auto;padding:18px 22px 90px}
+  .btn{background:var(--accent);color:#fff;border:none;height:36px;padding:0 18px;border-radius:8px;font-size:14px;cursor:pointer;white-space:nowrap}
+  .btn.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .proj{margin:14px 0}
+  .proj label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+  .proj input{height:34px;border:1px solid var(--input-border);background:var(--input);border-radius:6px;padding:0 10px;font-size:14px;width:360px;max-width:100%}
+  .legend{display:flex;gap:18px;align-items:center;font-size:12px;color:var(--muted);margin:8px 0}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1px solid #ccc}
+  .tabs{display:flex;gap:6px;margin:16px 0 0;border-bottom:2px solid var(--line);flex-wrap:wrap}
+  .tab{padding:9px 15px;font-size:14px;cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;color:var(--muted)}
+  .tab.active{background:#fff;border-color:var(--line);color:var(--ink);font-weight:600;margin-bottom:-2px}
+  .panel{background:#fff;border:1px solid var(--line);border-top:none;overflow-x:auto;min-height:120px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:#2f5d4b;color:#fff;font-weight:500;text-align:left;padding:8px 10px;font-size:12px}
+  td{padding:4px 8px;border-bottom:1px solid #f0efe9;vertical-align:middle}
+  tr.grp td{background:var(--group);font-weight:600;color:#234}
+  td.lock{color:#555}
+  input.f,select.f{width:100%;min-width:70px;height:30px;border:1px solid var(--input-border);background:var(--input);border-radius:5px;padding:0 8px;font-size:13px}
+  input.f:focus,select.f:focus{outline:2px solid #d8c874}
+  .status{padding:20px;color:var(--muted);font-size:14px}
+  .bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:10px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .msg{font-size:13px}
+  .msg.err{color:var(--err)}
+  .hidden{display:none}
+  .gate{max-width:520px;margin:60px auto;text-align:center}
+  .gate p{color:var(--muted);font-size:14px;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Кошторис — форма інженера · ESCORE</h1><div class="sub">Заповнюються лише підсвічені жовтим поля. Структуру шаблону змінити не можна.</div></div>
+  <div id="acct" class="sub"></div>
+</header>
+
+<div class="wrap">
+  <div id="gate" class="gate">
+    <p>Увійдіть через робочий Google-акаунт, щоб завантажити актуальний шаблон і зберегти заповнений кошторис на Google Drive.</p>
+    <button class="btn" id="signin">Увійти через Google</button>
+    <p id="gateerr" class="msg err"></p>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="proj">
+      <label>Проєкт № / назва — це папка на Google Drive (у «Проекти»)</label>
+      <input id="proj" placeholder="напр. 1245 Іваненко, Одеса" />
+    </div>
+    <div class="legend">
+      <span><span class="sw" style="background:#FFF2CC"></span>поле вводу</span>
+      <span><span class="sw" style="background:#F3F3F1"></span>розрахунок / формула (заблоковано)</span>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="panel"><div id="sheetHost"><div class="status">Завантаження шаблону…</div></div></div>
+  </div>
+</div>
+
+<div class="bar hidden" id="bar">
+  <span class="msg" id="msg"></span>
+  <span style="display:flex;gap:10px">
+    <button class="btn ghost" id="signout">Вийти</button>
+    <button class="btn" id="save" disabled>Зберегти на Drive</button>
+  </span>
+</div>
+
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<script>
+/* ================== КОНФІГ ==================
+   Якщо колись зміниться майстер-шаблон — заміни TEMPLATE_ID.
+   Поля вводу визначаються так:
+   - Кошторис: клітинки із жовтою заливкою #FFF2CC;
+   - Розрахунок: стовпець C (фіксовано).
+   Випадаючі списки та формули читаються з самого шаблону.            */
+const CONFIG = {
+  CLIENT_ID: "758495999284-fnsq0qf281d7vcd84hu7ri6eu2189psg.apps.googleusercontent.com",
+  TEMPLATE_ID: "1CM9f2xcyIr9l_64hLZ6BiugC1GG71AwkWlepUYcux_0",
+  SCOPES: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
+  PARENT_FOLDER: "Проекти",
+  REFERENCE_SHEET: "Довідник обладнання та цін",
+  INPUT_FILL: { r: 1, g: 0.9490, b: 0.8 },      // #FFF2CC
+  SHEETS: [
+    { title: "Кошторис_Наявність обладнання", headerRow: 1, mode: "fill" },
+    { title: "Розрахунок монтажних робіт", headerRow: 0, mode: "col", inputCols: [2] } // C = index 2
+  ]
+};
+
+let tokenClient, accessToken = null, model = null, activeTab = 0;
+const edits = {}; // key "sheetTitle!col,row" -> {a1, value, sheetTitle}
+
+/* ---------- helpers ---------- */
+function colLetter(i){ let s=""; i++; while(i){ let m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=(i-m-1)/26; } return s; }
+function a1(sheet,c,r){ return "'"+sheet.replace(/'/g,"''")+"'!"+colLetter(c)+(r+1); }
+function nearly(a,b){ return Math.abs(a-b)<0.02; }
+function isInputFill(cell){
+  const f = cell && cell.userEnteredFormat;
+  const bg = f && (f.backgroundColorStyle && f.backgroundColorStyle.rgbColor || f.backgroundColor);
+  if(!bg) return false;
+  const r=bg.red||0, g=bg.green||0, b=bg.blue||0;
+  return nearly(r,CONFIG.INPUT_FILL.r)&&nearly(g,CONFIG.INPUT_FILL.g)&&nearly(b,CONFIG.INPUT_FILL.b);
+}
+function isFormula(cell){ return !!(cell && cell.userEnteredValue && cell.userEnteredValue.formulaValue); }
+function disp(cell){ if(!cell) return ""; if(cell.formattedValue!=null) return cell.formattedValue;
+  const e=cell.effectiveValue||cell.userEnteredValue; if(!e) return "";
+  return e.stringValue!=null?e.stringValue:(e.numberValue!=null?e.numberValue:(e.boolValue!=null?e.boolValue:"")); }
+function dropdown(cell){
+  const dv = cell && cell.dataValidation; if(!dv||!dv.condition) return null;
+  const t = dv.condition.type;
+  if(t==="ONE_OF_LIST") return (dv.condition.values||[]).map(v=>v.userEnteredValue);
+  if(t==="ONE_OF_RANGE"){ const ref=(dv.condition.values&&dv.condition.values[0]||{}).userEnteredValue||""; return {range:ref}; }
+  return null;
+}
+
+/* ---------- auth ---------- */
+function initGis(){
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CONFIG.CLIENT_ID, scope: CONFIG.SCOPES,
+    callback: (resp)=>{ if(resp.error){ showGateErr(resp.error); return; }
+      accessToken = resp.access_token; gapi.client.setToken({access_token:accessToken});
+      onSignedIn(); }
+  });
+}
+function gapiLoad(){ gapi.load("client", async ()=>{
+  await gapi.client.init({ discoveryDocs:[
+    "https://sheets.googleapis.com/$discovery/rest?version=v4",
+    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest" ]});
+  document.getElementById("signin").disabled=false;
+});}
+function showGateErr(e){ document.getElementById("gateerr").textContent = "Помилка входу: "+e; }
+window.addEventListener("load", ()=>{ gapiLoad(); initGis();
+  document.getElementById("signin").onclick=()=>tokenClient.requestAccessToken({prompt:"consent"});
+  document.getElementById("signout").onclick=doSignOut;
+  document.getElementById("save").onclick=doSave;
+});
+function doSignOut(){ if(accessToken){ google.accounts.oauth2.revoke(accessToken,()=>{}); }
+  accessToken=null; location.reload(); }
+
+async function onSignedIn(){
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("bar").classList.remove("hidden");
+  try{ await loadTemplate(); }catch(e){ setMsg("Не вдалося прочитати шаблон: "+(e.message||e), true); }
+}
+function setMsg(t,err){ const m=document.getElementById("msg"); m.textContent=t; m.className="msg"+(err?" err":""); }
+
+/* ---------- read template ---------- */
+async function loadTemplate(){
+  const ranges = CONFIG.SHEETS.map(s=>s.title).concat([CONFIG.REFERENCE_SHEET]);
+  const resp = await gapi.client.sheets.spreadsheets.get({
+    spreadsheetId: CONFIG.TEMPLATE_ID, ranges, includeGridData:true,
+    fields:"sheets(properties(title),data(rowData(values(formattedValue,userEnteredValue,effectiveValue,userEnteredFormat.backgroundColorStyle,userEnteredFormat.backgroundColor,dataValidation))))"
+  });
+  const byTitle={}; (resp.result.sheets||[]).forEach(sh=>{ byTitle[sh.properties.title]=(sh.data&&sh.data[0]&&sh.data[0].rowData)||[]; });
+  model = { sheets:[], ref: byTitle[CONFIG.REFERENCE_SHEET]||[] };
+  CONFIG.SHEETS.forEach(cfg=>{ model.sheets.push({ cfg, rows: byTitle[cfg.title]||[] }); });
+  buildRefIndex();
+  renderTabs(); renderSheet(0);
+  document.getElementById("save").disabled=false;
+  setMsg("Шаблон завантажено. Заповніть жовті поля.");
+}
+
+/* Довідник: назва позиції -> ціна (стовпці B=назва, D=ціна) */
+let refIndex={};
+function buildRefIndex(){ refIndex={};
+  (model.ref||[]).forEach(r=>{ const v=r.values||[]; const name=disp(v[1]); const price=v[3]&&(v[3].effectiveValue||v[3].userEnteredValue);
+    if(name && price && price.numberValue!=null) refIndex[String(name).trim()]=price.numberValue; });
+}
+
+/* ---------- render ---------- */
+function renderTabs(){ const host=document.getElementById("tabs"); host.innerHTML="";
+  model.sheets.forEach((s,i)=>{ const d=document.createElement("div"); d.className="tab"+(i===activeTab?" active":"");
+    d.textContent=s.cfg.title; d.onclick=()=>{activeTab=i;renderTabs();renderSheet(i);}; host.appendChild(d); });
+}
+function resolveRangeOptions(ref){
+  // ref like "='Довідник обладнання та цін'!B2:B" -> pull column values from reference sheet
+  try{ const m=ref.match(/!\s*([A-Z]+)(\d+):([A-Z]+)?/); if(!m) return [];
+    const col=m[1].replace(/[0-9]/g,""); const ci=col.split("").reduce((a,ch)=>a*26+(ch.charCodeAt(0)-64),0)-1;
+    const out=[]; (model.ref||[]).forEach(r=>{ const c=(r.values||[])[ci]; const v=disp(c); if(v) out.push(v); });
+    return Array.from(new Set(out));
+  }catch(e){ return []; }
+}
+function renderSheet(idx){
+  const s=model.sheets[idx], host=document.getElementById("sheetHost");
+  const rows=s.rows, hr=s.cfg.headerRow;
+  const header=(rows[hr]&&rows[hr].values)||[];
+  let ncol=0; rows.forEach(r=>{ ncol=Math.max(ncol,(r.values||[]).length); });
+  ncol=Math.max(ncol, header.length);
+  // columns with a header label
+  const cols=[]; for(let c=0;c<ncol;c++){ const h=disp(header[c]); if(h!=="") cols.push({c,label:h}); }
+  if(cols.length===0){ for(let c=0;c<ncol;c++) cols.push({c,label:colLetter(c)}); }
+
+  let html="<table><tr>"+cols.map(c=>`<th>${esc(c.label)}</th>`).join("")+"</tr>";
+  for(let r=hr+1;r<rows.length;r++){
+    const cells=(rows[r]||{}).values||[];
+    const rowText=cols.map(c=>disp(cells[c.c])).join("").trim();
+    if(rowText==="") continue;
+    // group header: a row that has text only in the first column(s) and no input cells
+    const anyInput=cols.some(c=>isInput(s.cfg,cells[c.c],c.c));
+    const filledCells=cols.filter(c=>disp(cells[c.c])!=="").length;
+    if(!anyInput && filledCells<=1){ html+=`<tr class="grp"><td colspan="${cols.length}">${esc(rowText)}</td></tr>`; continue; }
+    html+="<tr>";
+    cols.forEach(c=>{
+      const cell=cells[c.c];
+      if(isInput(s.cfg,cell,c.c)){
+        const dd=dropdown(cell);
+        const cur=disp(cell);
+        const id=`in_${idx}_${c.c}_${r}`;
+        if(dd){ let opts = Array.isArray(dd)?dd:resolveRangeOptions(dd.range);
+          opts=[""].concat(opts.filter(o=>o!==""));
+          html+=`<td><select class="f" data-sheet="${idx}" data-c="${c.c}" data-r="${r}" onchange="onEdit(this)">`+
+            opts.map(o=>`<option ${o===cur?"selected":""}>${esc(o)}</option>`).join("")+`</select></td>`;
+        } else {
+          html+=`<td><input class="f" value="${esc(cur)}" data-sheet="${idx}" data-c="${c.c}" data-r="${r}" oninput="onEdit(this)"></td>`;
+        }
+      } else {
+        html+=`<td class="lock">${esc(disp(cell))}</td>`;
+      }
+    });
+    html+="</tr>";
+  }
+  html+="</table>";
+  host.innerHTML=html;
+}
+function isInput(cfg,cell,c){
+  if(cfg.mode==="fill") return isInputFill(cell) && !isFormula(cell);
+  if(cfg.mode==="col") return (cfg.inputCols||[]).includes(c) && !isFormula(cell);
+  return false;
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+/* record edit + price auto-fill for Кошторис dropdowns */
+function onEdit(el){
+  const si=+el.dataset.sheet, c=+el.dataset.c, r=+el.dataset.r;
+  const s=model.sheets[si];
+  const key=s.cfg.title+"!"+c+","+r;
+  edits[key]={ range:a1(s.cfg.title,c,r), value:el.value };
+  // price auto-fill: if this is a Довідник dropdown selection, put its price into the price cell of the same row
+  if(el.tagName==="SELECT" && refIndex[el.value]!=null){
+    const priceCell=findPriceInput(si,r);
+    if(priceCell){ priceCell.value=refIndex[el.value]; onEdit(priceCell); }
+  }
+}
+function findPriceInput(si,r){
+  // heuristic: an input in the same row whose header contains "Ціна"
+  const inputs=document.querySelectorAll(`#sheetHost input.f[data-sheet="${si}"][data-r="${r}"]`);
+  const s=model.sheets[si]; const header=(s.rows[s.cfg.headerRow].values)||[];
+  for(const inp of inputs){ const h=disp(header[+inp.dataset.c]); if(/ці?на|price/i.test(h)) return inp; }
+  return null;
+}
+
+/* ---------- save: copy template -> folder -> write inputs ---------- */
+async function doSave(){
+  const proj=document.getElementById("proj").value.trim();
+  if(!proj){ setMsg("Вкажіть № / назву проєкту.",true); return; }
+  const btn=document.getElementById("save"); btn.disabled=true; setMsg("Зберігаю…");
+  try{
+    const copy=await gapi.client.drive.files.copy({fileId:CONFIG.TEMPLATE_ID,
+      resource:{name:proj+" — Кошторис"}});
+    const newId=copy.result.id;
+    const folderId=await ensureProjectFolder(proj);
+    if(folderId){ await gapi.client.drive.files.update({fileId:newId,addParents:folderId,removeParents:copy.result.parents?copy.result.parents.join(","):undefined,fields:"id,parents"}); }
+    const data=Object.values(edits).map(e=>({range:e.range, values:[[coerce(e.value)]]}));
+    if(data.length){ await gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:newId,
+      resource:{valueInputOption:"USER_ENTERED", data}}); }
+    const link="https://docs.google.com/spreadsheets/d/"+newId+"/edit";
+    setMsg("Збережено ✓ ");
+    const m=document.getElementById("msg"); const a=document.createElement("a"); a.href=link; a.target="_blank"; a.textContent="відкрити таблицю"; a.style.marginLeft="6px"; m.appendChild(a);
+  }catch(e){ setMsg("Помилка збереження: "+(e.result&&e.result.error&&e.result.error.message||e.message||e),true); }
+  btn.disabled=false;
+}
+function coerce(v){ if(v!=="" && !isNaN(v) && /^-?\d+(\.\d+)?$/.test(String(v).replace(",","."))) return Number(String(v).replace(",",".")); return v; }
+async function ensureProjectFolder(proj){
+  // find parent "Проекти"
+  const p=await gapi.client.drive.files.list({q:`name='${CONFIG.PARENT_FOLDER.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:"files(id,name)"});
+  const parent=(p.result.files||[])[0];
+  const parentId=parent?parent.id:null;
+  // find/create project subfolder
+  let q=`name='${proj.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  if(parentId) q+=` and '${parentId}' in parents`;
+  const f=await gapi.client.drive.files.list({q,fields:"files(id,name)"});
+  if((f.result.files||[]).length) return f.result.files[0].id;
+  const meta={name:proj,mimeType:"application/vnd.google-apps.folder"}; if(parentId) meta.parents=[parentId];
+  const created=await gapi.client.drive.files.create({resource:meta,fields:"id"});
+  return created.result.id;
+}
+</script>
+</body>
+</html>

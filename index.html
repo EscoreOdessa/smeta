@@ -74,7 +74,6 @@
     <div class="legend">
       <span><span class="sw" style="background:#FFF2CC"></span>поле вводу</span>
       <span><span class="sw" style="background:#F3F3F1"></span>розрахунок / заблоковано</span>
-      <span id="annaleg" class="hidden"><span class="sw" style="background:#efe7fb"></span>ваша зона (ціни 1-го блоку, панелі)</span>
     </div>
     <div class="tabs" id="tabs"></div>
     <div class="panel"><div id="sheetHost"><div class="status">Завантаження…</div></div></div>
@@ -154,6 +153,8 @@ async function afterSignIn(){
 }
 function setChooserErr(t){document.getElementById("chooserr").textContent=t||"";}
 function extractId(s){if(!s)return null;const m=String(s).match(/[-\w]{25,}/);return m?m[0]:null;}
+function copyEngLink(id){const link=location.origin+location.pathname+"?id="+id;const c=document.getElementById("copied");
+  navigator.clipboard.writeText(link).then(()=>{if(c)c.textContent="скопійовано ✓";},()=>{if(c)c.textContent=link;});}
 
 /* create/open */
 async function ensureFolder(name,parentId){
@@ -189,9 +190,9 @@ async function listProjects(){
 async function openProject(id){
   fileId=id;document.getElementById("chooser").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");document.getElementById("bar").classList.remove("hidden");
-  if(isAnna)document.getElementById("annaleg").classList.remove("hidden");
+  const _al=document.getElementById("annaleg");if(isAnna&&_al)_al.classList.remove("hidden");
   try{const meta=await gapi.client.drive.files.get({fileId:id,fields:"name"});
-    document.getElementById("projname").innerHTML="Проєкт: <b>"+esc(meta.result.name)+"</b> · <a href='"+location.pathname+"?id="+id+"'>посилання для інженера</a>";
+    document.getElementById("projname").innerHTML="Проєкт: <b>"+esc(meta.result.name)+"</b> &nbsp;<button class='btn ghost' style='height:26px;padding:0 10px;font-size:12px' onclick=\"copyEngLink('"+id+"')\">Копіювати посилання для інженера</button> <span id='copied' class='sub'></span>";
     await loadGrid(id);
   }catch(e){setMsg("Не вдалося відкрити: "+errText(e),true);}
 }
@@ -312,7 +313,8 @@ async function doSave(){
   const b=document.getElementById("save");b.disabled=true;setMsg("Зберігаю…");
   try{const data=Object.values(edits).filter(e=>e.value!=="").map(e=>({range:e.range,values:[[coerce(e.value)]]}));
     if(data.length)await gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:fileId,resource:{valueInputOption:"USER_ENTERED",data}});
-    setMsg("Збережено ✓");
+    const _m=document.getElementById("msg");_m.className="msg";_m.textContent="Збережено ✓ ";
+    const _a=document.createElement("a");_a.href="https://docs.google.com/spreadsheets/d/"+fileId+"/edit";_a.target="_blank";_a.textContent="відкрити таблицю";_m.appendChild(_a);
   }catch(e){setMsg("Помилка збереження: "+errText(e),true);}b.disabled=false;
 }
 function coerce(v){const s=String(v).replace(",",".");if(v!==""&&!isNaN(s)&&/^-?\d+(\.\d+)?$/.test(s))return Number(s);return v;}

@@ -196,7 +196,7 @@ async function openProject(id){
   }catch(e){setMsg("Не вдалося відкрити: "+errText(e),true);}
 }
 async function loadGrid(id){
-  const ranges=[CONFIG.KOSH.title,CONFIG.ROB.title,CONFIG.REFERENCE_SHEET];
+  const ranges=[CONFIG.KOSH.title+"!A1:M200",CONFIG.ROB.title+"!A1:M130",CONFIG.REFERENCE_SHEET];
   const resp=await gapi.client.sheets.spreadsheets.get({spreadsheetId:id,ranges,includeGridData:true,
     fields:"sheets(properties(title),data(rowData(values(formattedValue,userEnteredValue,effectiveValue,effectiveFormat.backgroundColorStyle,effectiveFormat.backgroundColor,effectiveFormat.textFormat.foregroundColorStyle,effectiveFormat.textFormat.foregroundColor,effectiveFormat.textFormat.bold,dataValidation))))"});
   const byT={};(resp.result.sheets||[]).forEach(sh=>{byT[sh.properties.title]=(sh.data&&sh.data[0]&&sh.data[0].rowData)||[];});

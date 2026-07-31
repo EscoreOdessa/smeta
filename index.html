@@ -110,14 +110,14 @@ const edits={};
 function colL(i){let s="";i++;while(i){let m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=(i-m-1)/26;}return s;}
 function A1(sheet,c,r){return "'"+sheet.replace(/'/g,"''")+"'!"+colL(c)+(r+1);}
 function nearly(a,b){return Math.abs(a-b)<0.02;}
-function isFill(cell){const f=cell&&cell.userEnteredFormat;const bg=f&&(f.backgroundColorStyle&&f.backgroundColorStyle.rgbColor||f.backgroundColor);
+function isFill(cell){const f=cell&&cell.effectiveFormat;const bg=f&&(f.backgroundColorStyle&&f.backgroundColorStyle.rgbColor||f.backgroundColor);
   if(!bg)return false;const r=bg.red||0,g=bg.green||0,b=bg.blue||0;
   // тепла жовто-кремова заливка поля вводу (#FFF2CC та близькі): R>=G>=B, не біла, не зелена
   return r>=0.90&&g>=0.82&&b>=0.55&&b<=0.90&&r>=g&&g>=b;}
 function rgbCss(col){if(!col)return null;const r=Math.round((col.red||0)*255),g=Math.round((col.green||0)*255),b=Math.round((col.blue||0)*255);return "rgb("+r+","+g+","+b+")";}
-function bgOf(cell){const f=cell&&cell.userEnteredFormat;const bg=f&&(f.backgroundColorStyle&&f.backgroundColorStyle.rgbColor||f.backgroundColor);return rgbCss(bg);}
-function fgOf(cell){const t=cell&&cell.userEnteredFormat&&cell.userEnteredFormat.textFormat;const fg=t&&(t.foregroundColorStyle&&t.foregroundColorStyle.rgbColor||t.foregroundColor);return rgbCss(fg);}
-function boldOf(cell){const t=cell&&cell.userEnteredFormat&&cell.userEnteredFormat.textFormat;return t&&t.bold?"font-weight:600;":"";}
+function bgOf(cell){const f=cell&&cell.effectiveFormat;const bg=f&&(f.backgroundColorStyle&&f.backgroundColorStyle.rgbColor||f.backgroundColor);return rgbCss(bg);}
+function fgOf(cell){const t=cell&&cell.effectiveFormat&&cell.effectiveFormat.textFormat;const fg=t&&(t.foregroundColorStyle&&t.foregroundColorStyle.rgbColor||t.foregroundColor);return rgbCss(fg);}
+function boldOf(cell){const t=cell&&cell.effectiveFormat&&cell.effectiveFormat.textFormat;return t&&t.bold?"font-weight:600;":"";}
 function styleOf(cell){const bg=bgOf(cell),fg=fgOf(cell);return (bg?"background:"+bg+";":"")+(fg?"color:"+fg+";":"")+boldOf(cell);}
 function isFormula(cell){return !!(cell&&cell.userEnteredValue&&cell.userEnteredValue.formulaValue);}
 function hasDV(cell){return !!(cell&&cell.dataValidation&&cell.dataValidation.condition);}
@@ -198,7 +198,7 @@ async function openProject(id){
 async function loadGrid(id){
   const ranges=[CONFIG.KOSH.title,CONFIG.ROB.title,CONFIG.REFERENCE_SHEET];
   const resp=await gapi.client.sheets.spreadsheets.get({spreadsheetId:id,ranges,includeGridData:true,
-    fields:"sheets(properties(title),data(rowData(values(formattedValue,userEnteredValue,effectiveValue,userEnteredFormat.backgroundColorStyle,userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.foregroundColorStyle,userEnteredFormat.textFormat.foregroundColor,userEnteredFormat.textFormat.bold,dataValidation))))"});
+    fields:"sheets(properties(title),data(rowData(values(formattedValue,userEnteredValue,effectiveValue,effectiveFormat.backgroundColorStyle,effectiveFormat.backgroundColor,effectiveFormat.textFormat.foregroundColorStyle,effectiveFormat.textFormat.foregroundColor,effectiveFormat.textFormat.bold,dataValidation))))"});
   const byT={};(resp.result.sheets||[]).forEach(sh=>{byT[sh.properties.title]=(sh.data&&sh.data[0]&&sh.data[0].rowData)||[];});
   model={kosh:byT[CONFIG.KOSH.title]||[],rob:byT[CONFIG.ROB.title]||[],ref:byT[CONFIG.REFERENCE_SHEET]||[]};
   buildHierarchy();renderTabs();renderTab(0);

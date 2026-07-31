@@ -24,9 +24,9 @@
   .tabs{display:flex;gap:6px;margin:14px 0 0;border-bottom:2px solid var(--line);flex-wrap:wrap}
   .tab{padding:9px 15px;font-size:14px;cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;color:var(--muted)}
   .tab.active{background:#fff;border-color:var(--line);color:var(--ink);font-weight:600;margin-bottom:-2px}
-  .panel{background:#fff;border:1px solid var(--line);border-top:none;overflow-x:auto;min-height:120px}
+  .panel{background:#fff;border:1px solid var(--line);border-top:none;overflow:auto;max-height:72vh;min-height:120px}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th{background:#2f5d4b;color:#fff;font-weight:500;text-align:left;padding:7px 9px;font-size:12px}
+  th{background:#2f5d4b;color:#fff;font-weight:500;text-align:left;padding:7px 9px;font-size:12px;position:sticky;top:0;z-index:3}
   td{padding:3px 7px;border-bottom:1px solid #f0efe9;vertical-align:middle}
   tr.grp td{background:var(--group);font-weight:600;color:#1c3b2e}
   td.lock{color:#555}

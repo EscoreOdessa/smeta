@@ -112,7 +112,8 @@ function A1(sheet,c,r){return "'"+sheet.replace(/'/g,"''")+"'!"+colL(c)+(r+1);}
 function nearly(a,b){return Math.abs(a-b)<0.02;}
 function isFill(cell){const f=cell&&cell.userEnteredFormat;const bg=f&&(f.backgroundColorStyle&&f.backgroundColorStyle.rgbColor||f.backgroundColor);
   if(!bg)return false;const r=bg.red||0,g=bg.green||0,b=bg.blue||0;
-  return nearly(r,CONFIG.INPUT_FILL.r)&&nearly(g,CONFIG.INPUT_FILL.g)&&nearly(b,CONFIG.INPUT_FILL.b);}
+  // тепла жовто-кремова заливка поля вводу (#FFF2CC та близькі): R>=G>=B, не біла, не зелена
+  return r>=0.90&&g>=0.82&&b>=0.55&&b<=0.90&&r>=g&&g>=b;}
 function rgbCss(col){if(!col)return null;const r=Math.round((col.red||0)*255),g=Math.round((col.green||0)*255),b=Math.round((col.blue||0)*255);return "rgb("+r+","+g+","+b+")";}
 function bgOf(cell){const f=cell&&cell.userEnteredFormat;const bg=f&&(f.backgroundColorStyle&&f.backgroundColorStyle.rgbColor||f.backgroundColor);return rgbCss(bg);}
 function fgOf(cell){const t=cell&&cell.userEnteredFormat&&cell.userEnteredFormat.textFormat;const fg=t&&(t.foregroundColorStyle&&t.foregroundColorStyle.rgbColor||t.foregroundColor);return rgbCss(fg);}
@@ -256,8 +257,15 @@ function renderKosh(){
     html+="</tr>";
   }
   html+="</table>";host.innerHTML=html;
-  host.querySelectorAll('select[data-role="group"]').forEach(sel=>{const cur=sel.value;
-    sel.innerHTML=[""].concat(Object.keys(hierarchy).sort()).map(o=>`<option ${o===cur?"selected":""}>${esc(o)}</option>`).join("");});
+  host.querySelectorAll('select[data-role="group"]').forEach(gsel=>{
+    const r=gsel.dataset.r,curG=gsel.value;
+    gsel.innerHTML=[""].concat(Object.keys(hierarchy).sort()).map(o=>`<option ${o===curG?"selected":""}>${esc(o)}</option>`).join("");
+    const ssel=sib(r,"sub"),nsel=sib(r,"name"),curS=ssel?ssel.value:"",curN=nsel?nsel.value:"";
+    if(ssel){const subs=hierarchy[curG]?Object.keys(hierarchy[curG]).sort():[];
+      ssel.innerHTML=[""].concat(subs).map(o=>`<option ${o===curS?"selected":""}>${esc(o)}</option>`).join("");}
+    if(nsel){const items=(hierarchy[curG]&&hierarchy[curG][curS])||[];
+      nsel.innerHTML=[""].concat(items.map(i=>i.name)).map(o=>`<option ${o===curN?"selected":""}>${esc(o)}</option>`).join("");}
+  });
 }
 function sib(r,role){return document.querySelector(`select[data-role="${role}"][data-r="${r}"]`);}
 function onCascade(el){
@@ -283,12 +291,13 @@ function renderRob(){
     const cells=(rows[r]||{}).values||[];
     const txt=[];for(let c=0;c<ncol;c++)txt.push(disp(cells[c]));
     if(txt.join("").trim()==="")continue;
-    const isHeader=disp(cells[R.inputCol+1])===""&&disp(cells[0])===""&&disp(cells[1])!=="" && !isFill(cells[R.inputCol]);
+    const filledC=txt.filter(x=>String(x).trim()!=="").length;
+    const isHeader=filledC<=1 && !isFill(cells[R.inputCol]);
     if(isHeader){html+=`<tr class="grp"><td colspan="${ncol}" style="${styleOf(cells[1])}">${esc(txt.join(" ").trim())}</td></tr>`;continue;}
     html+="<tr>";
     for(let c=0;c<ncol;c++){
       const cell=cells[c];
-      if(c===R.inputCol){html+=`<td><input class="f" value="${esc(disp(cell))}" data-c="${c}" data-r="${r}" data-sheet="rob" oninput="onEdit(this)"></td>`;}
+      if(c===R.inputCol||isFill(cell)){html+=`<td><input class="f" value="${esc(disp(cell))}" data-c="${c}" data-r="${r}" data-sheet="rob" oninput="onEdit(this)"></td>`;}
       else html+=`<td class="lock" style="${styleOf(cell)}">${esc(disp(cell))}</td>`;
     }
     html+="</tr>";

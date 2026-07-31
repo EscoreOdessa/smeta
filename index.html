@@ -113,6 +113,11 @@ function nearly(a,b){return Math.abs(a-b)<0.02;}
 function isFill(cell){const f=cell&&cell.userEnteredFormat;const bg=f&&(f.backgroundColorStyle&&f.backgroundColorStyle.rgbColor||f.backgroundColor);
   if(!bg)return false;const r=bg.red||0,g=bg.green||0,b=bg.blue||0;
   return nearly(r,CONFIG.INPUT_FILL.r)&&nearly(g,CONFIG.INPUT_FILL.g)&&nearly(b,CONFIG.INPUT_FILL.b);}
+function rgbCss(col){if(!col)return null;const r=Math.round((col.red||0)*255),g=Math.round((col.green||0)*255),b=Math.round((col.blue||0)*255);return "rgb("+r+","+g+","+b+")";}
+function bgOf(cell){const f=cell&&cell.userEnteredFormat;const bg=f&&(f.backgroundColorStyle&&f.backgroundColorStyle.rgbColor||f.backgroundColor);return rgbCss(bg);}
+function fgOf(cell){const t=cell&&cell.userEnteredFormat&&cell.userEnteredFormat.textFormat;const fg=t&&(t.foregroundColorStyle&&t.foregroundColorStyle.rgbColor||t.foregroundColor);return rgbCss(fg);}
+function boldOf(cell){const t=cell&&cell.userEnteredFormat&&cell.userEnteredFormat.textFormat;return t&&t.bold?"font-weight:600;":"";}
+function styleOf(cell){const bg=bgOf(cell),fg=fgOf(cell);return (bg?"background:"+bg+";":"")+(fg?"color:"+fg+";":"")+boldOf(cell);}
 function isFormula(cell){return !!(cell&&cell.userEnteredValue&&cell.userEnteredValue.formulaValue);}
 function hasDV(cell){return !!(cell&&cell.dataValidation&&cell.dataValidation.condition);}
 function disp(cell){if(!cell)return "";if(cell.formattedValue!=null)return cell.formattedValue;
@@ -192,7 +197,7 @@ async function openProject(id){
 async function loadGrid(id){
   const ranges=[CONFIG.KOSH.title,CONFIG.ROB.title,CONFIG.REFERENCE_SHEET];
   const resp=await gapi.client.sheets.spreadsheets.get({spreadsheetId:id,ranges,includeGridData:true,
-    fields:"sheets(properties(title),data(rowData(values(formattedValue,userEnteredValue,effectiveValue,userEnteredFormat.backgroundColorStyle,userEnteredFormat.backgroundColor,dataValidation))))"});
+    fields:"sheets(properties(title),data(rowData(values(formattedValue,userEnteredValue,effectiveValue,userEnteredFormat.backgroundColorStyle,userEnteredFormat.backgroundColor,userEnteredFormat.textFormat.foregroundColorStyle,userEnteredFormat.textFormat.foregroundColor,userEnteredFormat.textFormat.bold,dataValidation))))"});
   const byT={};(resp.result.sheets||[]).forEach(sh=>{byT[sh.properties.title]=(sh.data&&sh.data[0]&&sh.data[0].rowData)||[];});
   model={kosh:byT[CONFIG.KOSH.title]||[],rob:byT[CONFIG.ROB.title]||[],ref:byT[CONFIG.REFERENCE_SHEET]||[]};
   buildHierarchy();renderTabs();renderTab(0);
@@ -214,34 +219,45 @@ function renderTab(i){i===0?renderKosh():renderRob();}
 function renderKosh(){
   const K=CONFIG.KOSH,rows=model.kosh,hr=K.headerRow,host=document.getElementById("sheetHost");
   const header=(rows[hr]&&rows[hr].values)||[];
-  const cols=K.cols.filter(c=>{const h=disp(header[c]);return !CONFIG.HIDE.some(rx=>rx.test(h));});
+  let maxc=0;rows.forEach(r=>maxc=Math.max(maxc,(r.values||[]).length));
+  const hidden=c=>CONFIG.HIDE.some(rx=>rx.test(disp(header[c])));
+  // столбцы = каскадные + с заголовком + любые, где есть жёлтая ячейка
+  const show=new Set([K.GROUP,K.SUB,K.NAME,K.PRICE]);
+  for(let c=0;c<maxc;c++){ if(hidden(c))continue;
+    if(disp(header[c])!=="")show.add(c);
+    for(let r=hr+1;r<rows.length;r++){const cell=(rows[r].values||[])[c];if(isFill(cell)&&!isFormula(cell)){show.add(c);break;}}}
+  const cols=[...show].filter(c=>!hidden(c)).sort((a,b)=>a-b);
   const label=c=>{const h=disp(header[c]);if(c===K.GROUP)return h||"Група";if(c===K.SUB)return h||"Підгрупа";if(c===K.NAME)return h||"Найменування";if(c===K.PRICE)return h||"Ціна";return h||colL(c);};
   let html="<table><tr>"+cols.map(c=>`<th>${esc(label(c))}</th>`).join("")+"</tr>";
   let block=0;
   for(let r=hr+1;r<rows.length;r++){
     const cells=(rows[r]||{}).values||[];
-    const txt=cols.map(c=>disp(cells[c])).join("").trim();
     const cascade=hasDV(cells[K.GROUP]);
-    const filled=cols.filter(c=>disp(cells[c])!=="").length;
+    const txt=cols.map(c=>disp(cells[c])).join("").trim();
     const anyYellow=cols.some(c=>isFill(cells[c])&&!isFormula(cells[c]));
-    if(!cascade && !anyYellow && filled<=1){ if(txt===""&&filled===0)continue; block++; html+=`<tr class="grp"><td colspan="${cols.length}">${esc(txt)}</td></tr>`; continue; }
+    const filled=cols.filter(c=>disp(cells[c])!=="").length;
+    if(!cascade&&!anyYellow&&filled<=1){ if(txt===""&&filled===0)continue; block++;
+      const st=styleOf(cells[cols[0]]||cells[K.NAME]);
+      html+=`<tr class="grp"><td colspan="${cols.length}" style="${st}">${esc(txt)}</td></tr>`; continue; }
     html+="<tr>";
     cols.forEach(c=>{
-      if(cascade && c===K.GROUP){html+=`<td><select class="f" data-role="group" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cells[c]))}</option></select></td>`;return;}
-      if(cascade && c===K.SUB){html+=`<td><select class="f" data-role="sub" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cells[c]))}</option></select></td>`;return;}
-      if(cascade && c===K.NAME){html+=`<td><select class="f" data-role="name" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cells[c]))}</option></select></td>`;return;}
-      if(c===K.PRICE){html+=`<td class="pricecell" id="price_${r}">${esc(disp(cells[c]))}</td>`;return;}
-      const cell=cells[c];const yellow=isFill(cell)&&!isFormula(cell);
+      const cell=cells[c];
+      if(cascade&&(c===K.GROUP||c===K.SUB||c===K.NAME)){
+        const role=c===K.GROUP?"group":c===K.SUB?"sub":"name";
+        html+=`<td><select class="f" data-role="${role}" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cell))}</option></select></td>`;return;}
+      if(cascade&&c===K.PRICE){
+        html+=`<td><input class="f" id="price_${r}" value="${esc(disp(cell))}" data-c="${c}" data-r="${r}" oninput="onEdit(this)"></td>`;return;}
+      const yellow=isFill(cell)&&!isFormula(cell);
       if(yellow){const priceLike=/ці?на|price/i.test(disp(header[c]));const annaZone=block===1&&priceLike;
         const dis=annaZone&&!isAnna?"disabled":"";
         html+=`<td class="${annaZone?'anna':''}"><input class="f${annaZone?' annaf':''}" value="${esc(disp(cell))}" ${dis} data-c="${c}" data-r="${r}" oninput="onEdit(this)"></td>`;return;}
-      html+=`<td class="lock">${esc(disp(cell))}</td>`;
+      html+=`<td class="lock" style="${styleOf(cell)}">${esc(disp(cell))}</td>`;
     });
     html+="</tr>";
   }
   html+="</table>";host.innerHTML=html;
   host.querySelectorAll('select[data-role="group"]').forEach(sel=>{const cur=sel.value;
-    sel.innerHTML=["" ].concat(Object.keys(hierarchy).sort()).map(o=>`<option ${o===cur?"selected":""}>${esc(o)}</option>`).join("");});
+    sel.innerHTML=[""].concat(Object.keys(hierarchy).sort()).map(o=>`<option ${o===cur?"selected":""}>${esc(o)}</option>`).join("");});
 }
 function sib(r,role){return document.querySelector(`select[data-role="${role}"][data-r="${r}"]`);}
 function onCascade(el){
@@ -251,7 +267,7 @@ function onCascade(el){
   if(role==="sub"){const items=(hierarchy[g.value]&&hierarchy[g.value][el.value])||[];
     if(n)n.innerHTML=[""].concat(items.map(i=>i.name)).map(o=>`<option>${esc(o)}</option>`).join("");}
   if(role==="name"){const items=(hierarchy[g.value]&&hierarchy[g.value][s.value])||[];const it=items.find(i=>i.name===el.value);
-    if(it&&it.price!=null){const pc=document.getElementById("price_"+r);if(pc)pc.textContent=it.price;
+    if(it&&it.price!=null){const pc=document.getElementById("price_"+r);if(pc)pc.value=it.price;
       edits[CONFIG.KOSH.title+"!"+CONFIG.KOSH.PRICE+","+r]={range:A1(CONFIG.KOSH.title,CONFIG.KOSH.PRICE,+r),value:it.price};}}
   [["group",g],["sub",s],["name",n]].forEach(([role2,elem])=>{if(!elem)return;const c=role2==="group"?CONFIG.KOSH.GROUP:role2==="sub"?CONFIG.KOSH.SUB:CONFIG.KOSH.NAME;
     edits[CONFIG.KOSH.title+"!"+c+","+r]={range:A1(CONFIG.KOSH.title,c,+r),value:elem.value};});
@@ -260,7 +276,7 @@ function onCascade(el){
 /* ---- Розрахунок: повний клон, стовпець C редагується ---- */
 function renderRob(){
   const R=CONFIG.ROB,rows=model.rob,hr=R.headerRow,host=document.getElementById("sheetHost");
-  let ncol=0;rows.forEach(r=>ncol=Math.max(ncol,(r.values||[]).length));ncol=Math.min(ncol,8);
+  let ncol=0;rows.forEach(r=>ncol=Math.max(ncol,(r.values||[]).length));
   const header=(rows[hr]&&rows[hr].values)||[];
   let html="<table><tr>";for(let c=0;c<ncol;c++)html+=`<th>${esc(disp(header[c])||colL(c))}</th>`;html+="</tr>";
   for(let r=hr+1;r<rows.length;r++){
@@ -268,12 +284,12 @@ function renderRob(){
     const txt=[];for(let c=0;c<ncol;c++)txt.push(disp(cells[c]));
     if(txt.join("").trim()==="")continue;
     const isHeader=disp(cells[R.inputCol+1])===""&&disp(cells[0])===""&&disp(cells[1])!=="" && !isFill(cells[R.inputCol]);
-    if(isHeader){html+=`<tr class="grp"><td colspan="${ncol}">${esc(txt.join(" ").trim())}</td></tr>`;continue;}
+    if(isHeader){html+=`<tr class="grp"><td colspan="${ncol}" style="${styleOf(cells[1])}">${esc(txt.join(" ").trim())}</td></tr>`;continue;}
     html+="<tr>";
     for(let c=0;c<ncol;c++){
       const cell=cells[c];
       if(c===R.inputCol){html+=`<td><input class="f" value="${esc(disp(cell))}" data-c="${c}" data-r="${r}" data-sheet="rob" oninput="onEdit(this)"></td>`;}
-      else html+=`<td class="lock">${esc(disp(cell))}</td>`;
+      else html+=`<td class="lock" style="${styleOf(cell)}">${esc(disp(cell))}</td>`;
     }
     html+="</tr>";
   }

@@ -350,7 +350,7 @@ function onEdit(el){const rob=el.dataset.sheet==="rob";const sheet=rob?CONFIG.RO
   setModelCell(rob?"rob":"kosh",+el.dataset.c,+el.dataset.r,el.value);}
 async function doSave(){
   const b=document.getElementById("save");b.disabled=true;setMsg("Зберігаю…");
-  try{const data=Object.values(edits).filter(e=>e.value!=="").map(e=>({range:e.range,values:[[coerce(e.value)]]}));
+  try{const data=Object.values(edits).map(e=>({range:e.range,values:[[coerce(e.value)]]}));
     if(!data.length){setMsg("Немає змін для збереження.");b.disabled=false;return;}
     const resp=await gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:fileId,resource:{valueInputOption:"USER_ENTERED",data}});
     const n=(resp.result&&resp.result.totalUpdatedCells)||0;

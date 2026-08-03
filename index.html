@@ -36,6 +36,8 @@
   td.anna{background:#f6f1fd}
   input.f:focus,select.f:focus{outline:2px solid #d8c874}
   input.f:disabled,select.f:disabled{background:#f3f3f1;border-color:#e2e2dd;color:#999}
+  .tgl{cursor:pointer;border:1px solid var(--input-border);background:var(--input);border-radius:6px;height:29px;padding:0 12px;font-size:13px;font-weight:600;color:#2b2b28;white-space:nowrap}
+  .tgl:hover{background:#fbeeb8}
   .status{padding:20px;color:var(--muted);font-size:14px}
   .bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:10px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
   .msg{font-size:13px}.msg.err{color:var(--err)}
@@ -100,7 +102,9 @@ const CONFIG={
   INPUT_FILL:{r:1,g:0.949,b:0.8},
   HIDE:[/наявн/i,/оновлюються автомат/i,/вартість/i],
   KOSH:{title:"Кошторис_Наявність обладнання",headerRow:1,cols:[0,1,2,3,5,6],GROUP:0,SUB:1,NAME:2,SUPPLIER:3,UNIT:5,PRICE:6},
-  ROB:{title:"Розрахунок монтажних робіт",headerRow:0,inputCol:2}
+  ROB:{title:"Розрахунок монтажних робіт",headerRow:0,inputCol:2},
+  // Точкові перемикачі «слово ⇄ слово». r,c — 0-based (I62 → r:61,c:8).
+  TOGGLES:[{sheet:"kosh",r:61,c:8,on:"обов'язково",off:"опціонально"}]
 };
 let tokenClient,accessToken=null,userEmail=null,isAnna=false;
 let fileId=null,model=null,activeTab=0,hierarchy=null;
@@ -120,6 +124,9 @@ function boldOf(cell){const t=cell&&cell.effectiveFormat&&cell.effectiveFormat.t
 function styleOf(cell){const bg=bgOf(cell),fg=fgOf(cell);return (bg?"background:"+bg+";":"")+(fg?"color:"+fg+";":"")+boldOf(cell);}
 function isFormula(cell){return !!(cell&&cell.userEnteredValue&&cell.userEnteredValue.formulaValue);}
 function hasDV(cell){return !!(cell&&cell.dataValidation&&cell.dataValidation.condition);}
+// Список значень із вбудованого правила перевірки даних (ONE_OF_LIST). Діапазони (ONE_OF_RANGE) ігноруємо.
+function dvList(cell){const dv=cell&&cell.dataValidation&&cell.dataValidation.condition;if(!dv||dv.type!=="ONE_OF_LIST")return null;
+  const vals=(dv.values||[]).map(v=>v&&v.userEnteredValue).filter(v=>v!=null&&String(v).charAt(0)!=="=");return vals.length?vals:null;}
 function disp(cell){if(!cell)return "";if(cell.formattedValue!=null)return cell.formattedValue;
   const e=cell.effectiveValue||cell.userEnteredValue;if(!e)return "";
   return e.stringValue!=null?e.stringValue:(e.numberValue!=null?e.numberValue:"");}
@@ -227,13 +234,16 @@ function renderTab(i){i===0?renderKosh():renderRob();}
 function renderKosh(){
   const K=CONFIG.KOSH,rows=model.kosh,hr=K.headerRow,host=document.getElementById("sheetHost");
   const header=(rows[hr]&&rows[hr].values)||[];
+  const toggles=(CONFIG.TOGGLES||[]).filter(t=>t.sheet==="kosh");
+  const toggleAt=(r,c)=>toggles.find(t=>t.r===r&&t.c===c);
   let maxc=0;rows.forEach(r=>maxc=Math.max(maxc,(r.values||[]).length));
   const hidden=c=>CONFIG.HIDE.some(rx=>rx.test(disp(header[c])));
-  // столбцы = каскадные + с заголовком + любые, где есть жёлтая ячейка
+  // столбцы = каскадные + с заголовком + любые, где есть жёлтая ячейка / список
   const show=new Set([K.GROUP,K.SUB,K.NAME,K.PRICE]);
   for(let c=0;c<maxc;c++){ if(hidden(c))continue;
     if(disp(header[c])!=="")show.add(c);
-    for(let r=hr+1;r<rows.length;r++){const cell=(rows[r].values||[])[c];if(isFill(cell)&&!isFormula(cell)){show.add(c);break;}}}
+    for(let r=hr+1;r<rows.length;r++){const cell=(rows[r].values||[])[c];if((isFill(cell)&&!isFormula(cell))||(!isFormula(cell)&&dvList(cell))){show.add(c);break;}}}
+  toggles.forEach(t=>show.add(t.c));
   const cols=[...show].filter(c=>!hidden(c)).sort((a,b)=>a-b);
   const label=c=>{const h=disp(header[c]);if(c===K.GROUP)return h||"Група";if(c===K.SUB)return h||"Підгрупа";if(c===K.NAME)return h||"Найменування";if(c===K.PRICE)return h||"Ціна";return h||colL(c);};
   let html="<table><tr>"+cols.map(c=>`<th>${esc(label(c))}</th>`).join("")+"</tr>";
@@ -242,9 +252,10 @@ function renderKosh(){
     const cells=(rows[r]||{}).values||[];
     const cascade=hasDV(cells[K.GROUP]);
     const txt=cols.map(c=>disp(cells[c])).join("").trim();
-    const anyYellow=cols.some(c=>isFill(cells[c])&&!isFormula(cells[c]));
+    const anyYellow=cols.some(c=>{const cc=cells[c];return (isFill(cc)&&!isFormula(cc))||(!isFormula(cc)&&dvList(cc));});
+    const hasToggle=toggles.some(t=>t.r===r);
     const filled=cols.filter(c=>disp(cells[c])!=="").length;
-    if(!cascade&&!anyYellow&&filled<=1){ if(txt===""&&filled===0)continue; block++;
+    if(!cascade&&!anyYellow&&!hasToggle&&filled<=1){ if(txt===""&&filled===0)continue; block++;
       const st=styleOf(cells[cols[0]]||cells[K.NAME]);
       html+=`<tr class="grp"><td colspan="${cols.length}" style="${st}">${esc(txt)}</td></tr>`; continue; }
     html+="<tr>";
@@ -255,6 +266,12 @@ function renderKosh(){
         html+=`<td><select class="f" data-role="${role}" data-r="${r}" onchange="onCascade(this)"><option>${esc(disp(cell))}</option></select></td>`;return;}
       if(cascade&&c===K.PRICE){
         html+=`<td><input class="f" id="price_${r}" value="${esc(disp(cell))}" data-c="${c}" data-r="${r}" oninput="onEdit(this)"></td>`;return;}
+      const tg=toggleAt(r,c);
+      if(tg){const cur=(disp(cell)||tg.off);
+        html+=`<td><button type="button" class="tgl" data-c="${c}" data-r="${r}" data-on="${esc(tg.on)}" data-off="${esc(tg.off)}" onclick="onToggle(this)">${esc(cur)}</button></td>`;return;}
+      const dvv=(!isFormula(cell))?dvList(cell):null;
+      if(dvv){const cur=disp(cell);
+        html+=`<td><select class="f" data-c="${c}" data-r="${r}" onchange="onEdit(this)">`+[""].concat(dvv).map(o=>`<option ${String(o)===String(cur)?"selected":""}>${esc(o)}</option>`).join("")+`</select></td>`;return;}
       const yellow=isFill(cell)&&!isFormula(cell);
       if(yellow){const priceLike=/ці?на|price/i.test(disp(header[c]));const annaZone=block===1&&priceLike;
         const dis=annaZone&&!isAnna?"disabled":"";
@@ -283,10 +300,16 @@ function onCascade(el){
     if(n)n.innerHTML=[""].concat(items.map(i=>i.name)).map(o=>`<option>${esc(o)}</option>`).join("");}
   if(role==="name"){const items=(hierarchy[g.value]&&hierarchy[g.value][s.value])||[];const it=items.find(i=>i.name===el.value);
     if(it&&it.price!=null){const pc=document.getElementById("price_"+r);if(pc)pc.value=it.price;
-      edits[CONFIG.KOSH.title+"!"+CONFIG.KOSH.PRICE+","+r]={range:A1(CONFIG.KOSH.title,CONFIG.KOSH.PRICE,+r),value:it.price};}}
+      edits[CONFIG.KOSH.title+"!"+CONFIG.KOSH.PRICE+","+r]={range:A1(CONFIG.KOSH.title,CONFIG.KOSH.PRICE,+r),value:it.price};
+      setModelCell("kosh",CONFIG.KOSH.PRICE,+r,it.price);}}
   [["group",g],["sub",s],["name",n]].forEach(([role2,elem])=>{if(!elem)return;const c=role2==="group"?CONFIG.KOSH.GROUP:role2==="sub"?CONFIG.KOSH.SUB:CONFIG.KOSH.NAME;
-    edits[CONFIG.KOSH.title+"!"+c+","+r]={range:A1(CONFIG.KOSH.title,c,+r),value:elem.value};});
+    edits[CONFIG.KOSH.title+"!"+c+","+r]={range:A1(CONFIG.KOSH.title,c,+r),value:elem.value};
+    setModelCell("kosh",c,+r,elem.value);});
 }
+/* перемикач «опціонально ⇄ обов'язково» */
+function onToggle(b){const cur=(b.textContent||"").trim();const next=cur===b.dataset.on?b.dataset.off:b.dataset.on;b.textContent=next;
+  const sheet=CONFIG.KOSH.title;edits[sheet+"!"+b.dataset.c+","+b.dataset.r]={range:A1(sheet,+b.dataset.c,+b.dataset.r),value:next};
+  setModelCell("kosh",+b.dataset.c,+b.dataset.r,next);}
 
 /* ---- Розрахунок: повний клон, стовпець C редагується ---- */
 function renderRob(){
@@ -313,13 +336,25 @@ function renderRob(){
 }
 
 /* edits + save */
-function onEdit(el){const sheet=el.dataset.sheet==="rob"?CONFIG.ROB.title:CONFIG.KOSH.title;
-  edits[sheet+"!"+el.dataset.c+","+el.dataset.r]={range:A1(sheet,+el.dataset.c,+el.dataset.r),value:el.value};}
+// Пишемо правку одразу в модель, щоб перемикання вкладок / перерендер її не втрачали.
+function setModelCell(sheetKey,c,r,value){
+  const arr=sheetKey==="rob"?model.rob:model.kosh;if(!arr)return;
+  if(!arr[r])arr[r]={values:[]};if(!arr[r].values)arr[r].values=[];
+  while(arr[r].values.length<=c)arr[r].values.push({});
+  const cell=arr[r].values[c]||{};const sv=String(value);
+  cell.formattedValue=sv;cell.userEnteredValue={stringValue:sv};cell.effectiveValue={stringValue:sv};
+  arr[r].values[c]=cell;
+}
+function onEdit(el){const rob=el.dataset.sheet==="rob";const sheet=rob?CONFIG.ROB.title:CONFIG.KOSH.title;
+  edits[sheet+"!"+el.dataset.c+","+el.dataset.r]={range:A1(sheet,+el.dataset.c,+el.dataset.r),value:el.value};
+  setModelCell(rob?"rob":"kosh",+el.dataset.c,+el.dataset.r,el.value);}
 async function doSave(){
   const b=document.getElementById("save");b.disabled=true;setMsg("Зберігаю…");
   try{const data=Object.values(edits).filter(e=>e.value!=="").map(e=>({range:e.range,values:[[coerce(e.value)]]}));
-    if(data.length)await gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:fileId,resource:{valueInputOption:"USER_ENTERED",data}});
-    const _m=document.getElementById("msg");_m.className="msg";_m.textContent="Збережено ✓ ";
+    if(!data.length){setMsg("Немає змін для збереження.");b.disabled=false;return;}
+    const resp=await gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:fileId,resource:{valueInputOption:"USER_ENTERED",data}});
+    const n=(resp.result&&resp.result.totalUpdatedCells)||0;
+    const _m=document.getElementById("msg");_m.className="msg";_m.textContent="Збережено "+n+" клітинок ✓ ";
     const _a=document.createElement("a");_a.href="https://docs.google.com/spreadsheets/d/"+fileId+"/edit";_a.target="_blank";_a.textContent="відкрити таблицю";_m.appendChild(_a);
   }catch(e){setMsg("Помилка збереження: "+errText(e),true);}b.disabled=false;
 }

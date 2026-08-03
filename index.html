@@ -59,13 +59,13 @@
   </div>
   <div id="chooser" class="hidden">
     <div class="card"><h2>Створити новий проєкт</h2>
-      <div class="sub" style="margin-bottom:8px">Копіює шаблон у папку «Проекти» на Google Drive. Зазвичай робить проєктант.</div>
-      <input class="ti" id="newproj" placeholder="№ / назва проєкту, напр. 1245 Іваненко, Одеса">
+      <div class="sub" style="margin-bottom:8px">Знаходить папку проєкту за номером у спільній «Проєкти» на Google Drive і копіює туди шаблон. Зазвичай робить проєктант.</div>
+      <input class="ti" id="newproj" placeholder="номер проєкту, напр. 386">
       <button class="btn" id="create" style="margin-left:8px">Створити проєкт</button></div>
     <div class="card"><h2>Відкрити наявний проєкт</h2>
-      <div class="sub" style="margin-bottom:8px">Оберіть проєкт зі списку або вставте посилання на файл.</div>
-      <button class="btn ghost" id="loadlist">Показати список проєктів</button>
-      <div class="projlist" id="projlist"></div>
+      <div class="sub" style="margin-bottom:8px">За номером проєкту або за посиланням від проєктанта.</div>
+      <input class="ti" id="opennum" placeholder="номер проєкту, напр. 386">
+      <button class="btn ghost" id="openbynum" style="margin-left:8px">Відкрити за номером</button>
       <div style="margin-top:10px"><input class="ti" id="openlink" placeholder="або вставте посилання на файл проєкту">
         <button class="btn ghost" id="openbylink" style="margin-left:8px">Відкрити</button></div></div>
     <p id="chooserr" class="msg err"></p>
@@ -93,7 +93,7 @@ const CONFIG={
   CLIENT_ID:"758495999284-fnsq0qf281d7vcd84hu7ri6eu2189psg.apps.googleusercontent.com",
   TEMPLATE_ID:"1CM9f2xcyIr9l_64hLZ6BiugC1GG71AwkWlepUYcux_0",
   SCOPES:"openid email https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
-  PARENT_FOLDER:"Проекти",
+  PROJECTS_FOLDER_ID:"1W1I905Ca5XvXLzIo8gi065JiDIrCO1U2",
   REFERENCE_SHEET:"Довідник обладнання та цін",
   ANNA_EMAIL:"anna.escore@gmail.com",
   REF:{group:0,name:1,price:3,subgroup:5},   // Довідник A,B,D,F (0-based). data from row idx 1
@@ -138,7 +138,7 @@ window.addEventListener("load",()=>{
       accessToken=resp.access_token;gapi.client.setToken({access_token:accessToken});await afterSignIn();}});
   document.getElementById("signin").onclick=()=>tokenClient.requestAccessToken({prompt:"consent"});
   document.getElementById("create").onclick=createProject;
-  document.getElementById("loadlist").onclick=listProjects;
+  document.getElementById("openbynum").onclick=openByNumber;
   document.getElementById("openbylink").onclick=()=>{const id=extractId(document.getElementById("openlink").value);id?openProject(id):setChooserErr("Не розпізнав посилання.");};
   document.getElementById("save").onclick=doSave;
   document.getElementById("back").onclick=()=>location.href=location.pathname;
@@ -157,33 +157,39 @@ function copyEngLink(id){const link=location.origin+location.pathname+"?id="+id;
   navigator.clipboard.writeText(link).then(()=>{if(c)c.textContent="скопійовано ✓";},()=>{if(c)c.textContent=link;});}
 
 /* create/open */
-async function ensureFolder(name,parentId){
-  let q=`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  if(parentId)q+=` and '${parentId}' in parents`;
-  const r=await gapi.client.drive.files.list({q,fields:"files(id,name)"});
-  if((r.result.files||[]).length)return r.result.files[0].id;
-  const meta={name,mimeType:"application/vnd.google-apps.folder"};if(parentId)meta.parents=[parentId];
-  return (await gapi.client.drive.files.create({resource:meta,fields:"id"})).result.id;
+function normNum(s){const m=String(s).match(/\d+/);return m?m[0]:"";}
+async function findProjectFolder(num){
+  const r=await gapi.client.drive.files.list({
+    q:`'${CONFIG.PROJECTS_FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    fields:"files(id,name)",pageSize:1000,supportsAllDrives:true,includeItemsFromAllDrives:true});
+  const folders=r.result.files||[];
+  const re=new RegExp("^№?\\s*"+num+"(\\D|$)");
+  return folders.find(f=>re.test(String(f.name).trim()))||null;
 }
 async function createProject(){
-  const name=document.getElementById("newproj").value.trim();
-  if(!name){setChooserErr("Вкажіть № / назву проєкту.");return;}
+  const num=normNum(document.getElementById("newproj").value);
+  if(!num){setChooserErr("Вкажіть номер проєкту (цифри).");return;}
   setChooserErr("");document.getElementById("create").disabled=true;
-  try{const parent=await ensureFolder(CONFIG.PARENT_FOLDER,null);const folder=await ensureFolder(name,parent);
-    const copy=await gapi.client.drive.files.copy({fileId:CONFIG.TEMPLATE_ID,resource:{name:name+" — Кошторис",parents:[folder]}});
+  try{
+    const folder=await findProjectFolder(num);
+    if(!folder){setChooserErr("Папку проєкту №"+num+" не знайдено у «Проєкти». Перевірте номер.");document.getElementById("create").disabled=false;return;}
+    const copy=await gapi.client.drive.files.copy({fileId:CONFIG.TEMPLATE_ID,supportsAllDrives:true,resource:{name:folder.name+" — Кошторис",parents:[folder.id]}});
     openProject(copy.result.id);
   }catch(e){setChooserErr("Не вдалося створити: "+errText(e));document.getElementById("create").disabled=false;}
 }
-async function listProjects(){
-  setChooserErr("");const host=document.getElementById("projlist");host.innerHTML="Завантаження…";
-  try{const p=await gapi.client.drive.files.list({q:`name='${CONFIG.PARENT_FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:"files(id)"});
-    const parent=(p.result.files||[])[0];if(!parent){host.innerHTML="Папку «Проекти» не знайдено.";return;}
-    const subs=await gapi.client.drive.files.list({q:`'${parent.id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,fields:"files(id,name)",orderBy:"name"});
-    const folders=subs.result.files||[];if(!folders.length){host.innerHTML="Проєктів поки немає.";return;}
-    host.innerHTML="";folders.forEach(f=>{const b=document.createElement("button");b.textContent=f.name;
-      b.onclick=async()=>{const sp=await gapi.client.drive.files.list({q:`'${f.id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,fields:"files(id,name)"});
-        const file=(sp.result.files||[])[0];file?openProject(file.id):setChooserErr("У «"+f.name+"» немає таблиці.");};host.appendChild(b);});
-  }catch(e){host.innerHTML="";setChooserErr("Помилка списку: "+errText(e));}
+async function openByNumber(){
+  const num=normNum(document.getElementById("opennum").value);
+  if(!num){setChooserErr("Вкажіть номер проєкту.");return;}
+  setChooserErr("");
+  try{
+    const folder=await findProjectFolder(num);
+    if(!folder){setChooserErr("Папку проєкту №"+num+" не знайдено.");return;}
+    const sp=await gapi.client.drive.files.list({q:`'${folder.id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,fields:"files(id,name)",supportsAllDrives:true,includeItemsFromAllDrives:true});
+    const files=sp.result.files||[];
+    const file=files.find(f=>/кошторис/i.test(f.name))||files[0];
+    if(!file){setChooserErr("У папці №"+num+" ще немає кошторису. Спершу «Створити проєкт».");return;}
+    openProject(file.id);
+  }catch(e){setChooserErr("Помилка: "+errText(e));}
 }
 
 /* load */
@@ -191,7 +197,7 @@ async function openProject(id){
   fileId=id;document.getElementById("chooser").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");document.getElementById("bar").classList.remove("hidden");
   const _al=document.getElementById("annaleg");if(isAnna&&_al)_al.classList.remove("hidden");
-  try{const meta=await gapi.client.drive.files.get({fileId:id,fields:"name"});
+  try{const meta=await gapi.client.drive.files.get({fileId:id,fields:"name",supportsAllDrives:true});
     document.getElementById("projname").innerHTML="Проєкт: <b>"+esc(meta.result.name)+"</b> &nbsp;<button class='btn ghost' style='height:26px;padding:0 10px;font-size:12px' onclick=\"copyEngLink('"+id+"')\">Копіювати посилання для інженера</button> <span id='copied' class='sub'></span>";
     await loadGrid(id);
   }catch(e){setMsg("Не вдалося відкрити: "+errText(e),true);}

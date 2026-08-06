@@ -62,14 +62,15 @@
   <div id="chooser" class="hidden">
     <div class="card"><h2>Створити новий проєкт</h2>
       <div class="sub" style="margin-bottom:8px">Знаходить папку проєкту за номером у спільній «Проєкти» на Google Drive і копіює туди шаблон. Зазвичай робить проєктант.</div>
-      <input class="ti" id="newproj" placeholder="номер проєкту, напр. 386">
+      <input class="ti" id="newproj" placeholder="номер проєкту, напр. 386 (або 386.2 — конкретний підномер)">
       <button class="btn" id="create" style="margin-left:8px">Створити проєкт</button></div>
     <div class="card"><h2>Відкрити наявний проєкт</h2>
       <div class="sub" style="margin-bottom:8px">За номером проєкту або за посиланням від проєктанта.</div>
-      <input class="ti" id="opennum" placeholder="номер проєкту, напр. 386">
+      <input class="ti" id="opennum" placeholder="номер проєкту або кошторису, напр. 386 чи 386.2">
       <button class="btn ghost" id="openbynum" style="margin-left:8px">Відкрити за номером</button>
       <div style="margin-top:10px"><input class="ti" id="openlink" placeholder="або вставте посилання на файл проєкту">
         <button class="btn ghost" id="openbylink" style="margin-left:8px">Відкрити</button></div></div>
+    <div id="projlist" class="projlist"></div>
     <p id="chooserr" class="msg err"></p>
   </div>
   <div id="app" class="hidden">
@@ -164,7 +165,16 @@ function copyEngLink(id){const link=location.origin+location.pathname+"?id="+id;
   navigator.clipboard.writeText(link).then(()=>{if(c)c.textContent="скопійовано ✓";},()=>{if(c)c.textContent=link;});}
 
 /* create/open */
-function normNum(s){const m=String(s).match(/\d+/);return m?m[0]:"";}
+// Розбір коду: "282" -> {base:"282",sub:null}; "282.1" (або 282-1 / 282/1) -> {base:"282",sub:"1"}
+function parseCode(s){const m=String(s||"").trim().match(/(\d+)\s*(?:[.\-\/]\s*(\d+))?/);if(!m)return null;return {base:m[1],sub:m[2]||null,full:m[2]?m[1]+"."+m[2]:m[1]};}
+// Регекс для файла з конкретним підномером: 282.1 але не 282.10, і 282 не як частина 1282
+function subRe(base,sub){return new RegExp("(?:^|\\D)"+base+"\\s*[.\\-\\/]\\s*"+sub+"(?!\\d)");}
+// Найбільший наявний підномер для базового номера (для авто-нумерації при створенні)
+function maxSub(files,base){let mx=0;const re=new RegExp("(?:^|\\D)"+base+"\\s*[.\\-\\/]\\s*(\\d+)");files.forEach(f=>{const mm=String(f.name).match(re);if(mm){const n=parseInt(mm[1],10);if(n>mx)mx=n;}});return mx;}
+async function listSmetas(folderId){const sp=await gapi.client.drive.files.list({q:`'${folderId}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,fields:"files(id,name)",pageSize:1000,supportsAllDrives:true,includeItemsFromAllDrives:true});return sp.result.files||[];}
+// Показати список кошторисів у папці кнопками (клік -> відкрити)
+function renderChooser(files,hint){const box=document.getElementById("projlist");if(!box)return;setChooserErr(hint||"");box.innerHTML="";
+  files.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),undefined,{numeric:true})).forEach(f=>{const b=document.createElement("button");b.textContent=f.name;b.onclick=()=>{box.innerHTML="";setChooserErr("");openProject(f.id);};box.appendChild(b);});}
 async function findProjectFolder(num){
   const r=await gapi.client.drive.files.list({
     q:`'${CONFIG.PROJECTS_FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
@@ -174,28 +184,41 @@ async function findProjectFolder(num){
   return folders.find(f=>re.test(String(f.name).trim()))||null;
 }
 async function createProject(){
-  const num=normNum(document.getElementById("newproj").value);
-  if(!num){setChooserErr("Вкажіть номер проєкту (цифри).");return;}
-  setChooserErr("");document.getElementById("create").disabled=true;
+  const code=parseCode(document.getElementById("newproj").value);
+  if(!code){setChooserErr("Вкажіть номер проєкту (цифри, напр. 386 або 386.2).");return;}
+  setChooserErr("");document.getElementById("projlist").innerHTML="";document.getElementById("create").disabled=true;
   try{
-    const folder=await findProjectFolder(num);
-    if(!folder){setChooserErr("Папку проєкту №"+num+" не знайдено у «Проєкти». Перевірте номер.");document.getElementById("create").disabled=false;return;}
-    const copy=await gapi.client.drive.files.copy({fileId:CONFIG.TEMPLATE_ID,supportsAllDrives:true,resource:{name:folder.name+" — Кошторис",parents:[folder.id]}});
+    const folder=await findProjectFolder(code.base);
+    if(!folder){setChooserErr("Папку проєкту №"+code.base+" не знайдено у «Проєкти». Перевірте номер.");document.getElementById("create").disabled=false;return;}
+    const files=await listSmetas(folder.id);
+    let sub=code.sub;
+    if(sub){
+      if(files.some(f=>subRe(code.base,sub).test(String(f.name)))){setChooserErr("Кошторис "+code.base+"."+sub+" вже існує в папці. Відкрийте його або вкажіть інший підномер.");document.getElementById("create").disabled=false;return;}
+    }else{
+      sub=String(maxSub(files,code.base)+1);
+    }
+    const name=code.base+"."+sub+" — Кошторис";
+    const copy=await gapi.client.drive.files.copy({fileId:CONFIG.TEMPLATE_ID,supportsAllDrives:true,resource:{name:name,parents:[folder.id]}});
     openProject(copy.result.id);
   }catch(e){setChooserErr("Не вдалося створити: "+errText(e));document.getElementById("create").disabled=false;}
 }
 async function openByNumber(){
-  const num=normNum(document.getElementById("opennum").value);
-  if(!num){setChooserErr("Вкажіть номер проєкту.");return;}
-  setChooserErr("");
+  const code=parseCode(document.getElementById("opennum").value);
+  if(!code){setChooserErr("Вкажіть номер проєкту.");return;}
+  setChooserErr("");document.getElementById("projlist").innerHTML="";
   try{
-    const folder=await findProjectFolder(num);
-    if(!folder){setChooserErr("Папку проєкту №"+num+" не знайдено.");return;}
-    const sp=await gapi.client.drive.files.list({q:`'${folder.id}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,fields:"files(id,name)",supportsAllDrives:true,includeItemsFromAllDrives:true});
-    const files=sp.result.files||[];
-    const file=files.find(f=>/кошторис/i.test(f.name))||files[0];
-    if(!file){setChooserErr("У папці №"+num+" ще немає кошторису. Спершу «Створити проєкт».");return;}
-    openProject(file.id);
+    const folder=await findProjectFolder(code.base);
+    if(!folder){setChooserErr("Папку проєкту №"+code.base+" не знайдено.");return;}
+    const files=await listSmetas(folder.id);
+    if(!files.length){setChooserErr("У папці №"+code.base+" ще немає кошторису. Спершу «Створити проєкт».");return;}
+    if(code.sub){
+      const matches=files.filter(f=>subRe(code.base,code.sub).test(String(f.name)));
+      if(matches.length===1){openProject(matches[0].id);return;}
+      if(!matches.length){renderChooser(files,"Кошторис "+code.full+" не знайдено. Оберіть потрібний зі списку:");return;}
+      renderChooser(matches,"Знайдено кілька збігів — оберіть потрібний:");return;
+    }
+    if(files.length===1){openProject(files[0].id);return;}
+    renderChooser(files,"У проєкті кілька кошторисів — оберіть потрібний:");
   }catch(e){setChooserErr("Помилка: "+errText(e));}
 }
 

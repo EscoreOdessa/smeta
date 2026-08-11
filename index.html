@@ -109,6 +109,7 @@ const CONFIG={
 };
 let tokenClient,accessToken=null,userEmail=null,isAnna=false;
 let fileId=null,model=null,activeTab=0,hierarchy=null;
+let tokenExpiry=0,tokenResolve=null,refreshTimer=null;
 const edits={};
 
 function colL(i){let s="";i++;while(i){let m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=(i-m-1)/26;}return s;}
@@ -142,8 +143,11 @@ window.addEventListener("load",()=>{
     "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]});
     document.getElementById("signin").disabled=false;});
   tokenClient=google.accounts.oauth2.initTokenClient({client_id:CONFIG.CLIENT_ID,scope:CONFIG.SCOPES,
-    callback:async(resp)=>{if(resp.error){document.getElementById("gateerr").textContent="Помилка входу: "+resp.error;return;}
-      accessToken=resp.access_token;gapi.client.setToken({access_token:accessToken});await afterSignIn();}});
+    callback:async(resp)=>{
+      if(resp.error){if(tokenResolve){const r=tokenResolve;tokenResolve=null;r({error:resp.error});}else{document.getElementById("gateerr").textContent="Помилка входу: "+resp.error;}return;}
+      accessToken=resp.access_token;gapi.client.setToken({access_token:accessToken});
+      tokenExpiry=Date.now()+(((+resp.expires_in)||3600)*1000);
+      if(tokenResolve){const r=tokenResolve;tokenResolve=null;r({ok:true});}else{await afterSignIn();}}});
   document.getElementById("signin").onclick=()=>tokenClient.requestAccessToken({prompt:"consent"});
   document.getElementById("create").onclick=createProject;
   document.getElementById("openbynum").onclick=openByNumber;
@@ -151,9 +155,13 @@ window.addEventListener("load",()=>{
   document.getElementById("save").onclick=doSave;
   document.getElementById("back").onclick=()=>location.href=location.pathname;
 });
+/* Токен Google живе ~1 год. Тихо продовжуємо його, щоб довге заповнення не втрачало доступ. */
+function refreshToken(){return new Promise((resolve)=>{tokenResolve=resolve;try{tokenClient.requestAccessToken({prompt:""});}catch(e){tokenResolve=null;resolve({error:(e&&e.message)||String(e)});}});}
+async function ensureToken(){if(!accessToken||Date.now()>tokenExpiry-120000){const r=await refreshToken();if(r&&r.error)throw new Error("Сесія Google завершилася. Онови сторінку і увійди знову.");}}
 async function afterSignIn(){
   try{const info=await fetch("https://www.googleapis.com/oauth2/v3/userinfo",{headers:{Authorization:"Bearer "+accessToken}}).then(r=>r.json());userEmail=(info.email||"").toLowerCase();}catch(e){userEmail="";}
   isAnna=userEmail===CONFIG.ANNA_EMAIL.toLowerCase();
+  if(!refreshTimer)refreshTimer=setInterval(()=>{if(accessToken&&!tokenResolve)refreshToken();},45*60*1000);
   document.getElementById("acct").textContent=userEmail+(isAnna?" · режим: розрахунок цін":" · режим: заповнення");
   document.getElementById("gate").classList.add("hidden");
   const urlId=new URLSearchParams(location.search).get("id");
@@ -239,7 +247,10 @@ async function loadGrid(id){
   const byT={};(resp.result.sheets||[]).forEach(sh=>{byT[sh.properties.title]=(sh.data&&sh.data[0]&&sh.data[0].rowData)||[];});
   model={kosh:byT[CONFIG.KOSH.title]||[],rob:byT[CONFIG.ROB.title]||[],ref:byT[CONFIG.REFERENCE_SHEET]||[]};
   buildHierarchy();renderTabs();renderTab(0);
-  document.getElementById("save").disabled=false;setMsg("Завантажено. Заповніть жовті поля.");
+  document.getElementById("save").disabled=false;
+  let dr=null;try{const dk=draftKey();dr=dk&&JSON.parse(localStorage.getItem(dk)||"null");}catch(e){}
+  if(dr&&Object.keys(dr).length){const _m=document.getElementById("msg");_m.className="msg";_m.textContent="Знайдено незбережену чернетку ("+Object.keys(dr).length+" полів). ";const _b=document.createElement("button");_b.className="btn ghost";_b.style.cssText="height:26px;padding:0 10px;font-size:12px";_b.textContent="Відновити";_b.onclick=()=>restoreDraft(dr);_m.appendChild(_b);}
+  else setMsg("Завантажено. Заповніть жовті поля.");
 }
 function buildHierarchy(){hierarchy={};const R=CONFIG.REF;
   (model.ref||[]).slice(1).forEach(r=>{const v=r.values||[];const g=String(disp(v[R.group])).trim(),sub=String(disp(v[R.subgroup])).trim()||"—",name=String(disp(v[R.name])).trim();
@@ -328,11 +339,12 @@ function onCascade(el){
   [["group",g],["sub",s],["name",n]].forEach(([role2,elem])=>{if(!elem)return;const c=role2==="group"?CONFIG.KOSH.GROUP:role2==="sub"?CONFIG.KOSH.SUB:CONFIG.KOSH.NAME;
     edits[CONFIG.KOSH.title+"!"+c+","+r]={range:A1(CONFIG.KOSH.title,c,+r),value:elem.value};
     setModelCell("kosh",c,+r,elem.value);});
+  saveDraft();
 }
 /* перемикач «опціонально ⇄ обов'язково» */
 function onToggle(b){const cur=(b.textContent||"").trim();const next=cur===b.dataset.on?b.dataset.off:b.dataset.on;b.textContent=next;
   const sheet=CONFIG.KOSH.title;edits[sheet+"!"+b.dataset.c+","+b.dataset.r]={range:A1(sheet,+b.dataset.c,+b.dataset.r),value:next};
-  setModelCell("kosh",+b.dataset.c,+b.dataset.r,next);}
+  setModelCell("kosh",+b.dataset.c,+b.dataset.r,next);saveDraft();}
 
 /* ---- Розрахунок: повний клон, стовпець C редагується ---- */
 function renderRob(){
@@ -370,15 +382,26 @@ function setModelCell(sheetKey,c,r,value){
 }
 function onEdit(el){const rob=el.dataset.sheet==="rob";const sheet=rob?CONFIG.ROB.title:CONFIG.KOSH.title;
   edits[sheet+"!"+el.dataset.c+","+el.dataset.r]={range:A1(sheet,+el.dataset.c,+el.dataset.r),value:el.value};
-  setModelCell(rob?"rob":"kosh",+el.dataset.c,+el.dataset.r,el.value);}
+  setModelCell(rob?"rob":"kosh",+el.dataset.c,+el.dataset.r,el.value);saveDraft();}
+/* Чернетка у браузері — страховка від втрати даних при будь-якому збої (мережа, закрита вкладка). */
+function draftKey(){return fileId?("smeta_draft_"+fileId):null;}
+function saveDraft(){try{const k=draftKey();if(k)localStorage.setItem(k,JSON.stringify(edits));}catch(e){}}
+function clearDraft(){try{const k=draftKey();if(k)localStorage.removeItem(k);}catch(e){}}
+function restoreDraft(d){try{Object.keys(d).forEach(k=>{edits[k]=d[k];const bang=k.indexOf("!");if(bang<0)return;const title=k.slice(0,bang),cm=k.slice(bang+1).split(",");const c=+cm[0],r=+cm[1];const sk=title===CONFIG.ROB.title?"rob":(title===CONFIG.KOSH.title?"kosh":null);if(sk)setModelCell(sk,c,r,d[k].value);});renderTabs();renderTab(activeTab);const _m=document.getElementById("msg");_m.className="msg";_m.textContent="Відновлено незбережену чернетку. Перевір значення й натисни «Зберегти».";}catch(e){}}
+function is401(e){const st=e&&(e.status||(e.result&&e.result.error&&e.result.error.code));return st===401||/UNAUTHENTICATED|invalid authentication|Expected OAuth/i.test(errText(e));}
+async function saveBatch(data){return gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:fileId,resource:{valueInputOption:"USER_ENTERED",data}});}
 async function doSave(){
   const b=document.getElementById("save");b.disabled=true;setMsg("Зберігаю…");
   try{const data=Object.values(edits).map(e=>({range:e.range,values:[[coerce(e.value)]]}));
     if(!data.length){setMsg("Немає змін для збереження.");b.disabled=false;return;}
-    const resp=await gapi.client.sheets.spreadsheets.values.batchUpdate({spreadsheetId:fileId,resource:{valueInputOption:"USER_ENTERED",data}});
+    await ensureToken();
+    let resp;
+    try{resp=await saveBatch(data);}
+    catch(e){if(is401(e)){const r=await refreshToken();if(r&&r.error)throw new Error("Сесія Google завершилася. Онови сторінку і увійди знову.");resp=await saveBatch(data);}else throw e;}
     const n=(resp.result&&resp.result.totalUpdatedCells)||0;
     const _m=document.getElementById("msg");_m.className="msg";_m.textContent="Збережено "+n+" клітинок ✓ ";
     const _a=document.createElement("a");_a.href="https://docs.google.com/spreadsheets/d/"+fileId+"/edit";_a.target="_blank";_a.textContent="відкрити таблицю";_m.appendChild(_a);
+    clearDraft();
   }catch(e){setMsg("Помилка збереження: "+errText(e),true);}b.disabled=false;
 }
 function coerce(v){const s=String(v).replace(",",".");if(v!==""&&!isNaN(s)&&/^-?\d+(\.\d+)?$/.test(s))return Number(s);return v;}

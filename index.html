@@ -99,7 +99,7 @@ const CONFIG={
   PROJECTS_FOLDER_ID:"1W1I905Ca5XvXLzIo8gi065JiDIrCO1U2",
   REFERENCE_SHEET:"Довідник обладнання та цін",
   ANNA_EMAIL:"anna.escore@gmail.com",
-  REF:{group:0,name:1,price:3,subgroup:5},   // Довідник A,B,D,F (0-based). data from row idx 1
+  REF:{group:0,name:1,supplier:2,price:3,subgroup:5},   // Довідник A,B,C,D,F (0-based). data from row idx 1
   INPUT_FILL:{r:1,g:0.949,b:0.8},
   HIDE:[/наявн/i,/оновлюються автомат/i,/вартість/i],
   KOSH:{title:"Кошторис_Наявність обладнання",headerRow:1,cols:[0,1,2,3,5,6],GROUP:0,SUB:1,NAME:2,SUPPLIER:3,UNIT:5,PRICE:6},
@@ -253,9 +253,9 @@ async function loadGrid(id){
   else setMsg("Завантажено. Заповніть жовті поля.");
 }
 function buildHierarchy(){hierarchy={};const R=CONFIG.REF;
-  (model.ref||[]).slice(1).forEach(r=>{const v=r.values||[];const g=String(disp(v[R.group])).trim(),sub=String(disp(v[R.subgroup])).trim()||"—",name=String(disp(v[R.name])).trim();
+  (model.ref||[]).slice(1).forEach(r=>{const v=r.values||[];const g=String(disp(v[R.group])).trim(),sub=String(disp(v[R.subgroup])).trim()||"—",name=String(disp(v[R.name])).trim(),supplier=String(disp(v[R.supplier])||"").trim();
     const pc=v[R.price]&&(v[R.price].effectiveValue||v[R.price].userEnteredValue);const price=pc&&pc.numberValue!=null?pc.numberValue:null;
-    if(!g||!name)return;hierarchy[g]=hierarchy[g]||{};hierarchy[g][sub]=hierarchy[g][sub]||[];hierarchy[g][sub].push({name,price});});
+    if(!g||!name)return;hierarchy[g]=hierarchy[g]||{};hierarchy[g][sub]=hierarchy[g][sub]||[];hierarchy[g][sub].push({name,price,supplier});});
 }
 
 /* tabs */
@@ -310,7 +310,7 @@ function renderKosh(){
       if(yellow){const priceLike=/ці?на|price/i.test(disp(header[c]));const annaZone=block===1&&priceLike;
         const dis=annaZone&&!isAnna?"disabled":"";
         html+=`<td class="${annaZone?'anna':''}"><input class="f${annaZone?' annaf':''}" value="${esc(disp(cell))}" ${dis} data-c="${c}" data-r="${r}" oninput="onEdit(this)"></td>`;return;}
-      html+=`<td class="lock" style="${styleOf(cell)}">${esc(disp(cell))}</td>`;
+      html+=`<td class="lock" data-c="${c}" data-r="${r}" style="${styleOf(cell)}">${esc(disp(cell))}</td>`;
     });
     html+="</tr>";
   }
@@ -325,6 +325,17 @@ function renderKosh(){
       nsel.innerHTML=[""].concat(items.map(i=>i.name)).map(o=>`<option ${o===curN?"selected":""}>${esc(o)}</option>`).join("");}
   });
 }
+/* колонка D «Постачальник»: у таблицю пишемо ФОРМУЛУ — постачальник з «Довідника» за найменуванням,
+   тож після оновлення Довідника він змінюється сам; на сайті одразу показуємо поточне значення */
+function supplierFormula(r){const c=colL(CONFIG.KOSH.NAME)+(r+1),ref="'"+CONFIG.REFERENCE_SHEET.replace(/'/g,"''")+"'";
+  return '=IF(TRIM('+c+')="","",IFERROR(VLOOKUP(TRIM('+c+'),'+ref+'!$B:$C,2,FALSE),""))';}
+function setSupplier(r,g,s,n){const K=CONFIG.KOSH;if(K.SUPPLIER==null)return;
+  const items=(g&&s&&hierarchy[g.value]&&hierarchy[g.value][s.value])||[];const it=n&&items.find(i=>i.name===n.value);
+  const shown=it?(it.supplier||""):"";
+  edits[K.title+"!"+K.SUPPLIER+","+r]={range:A1(K.title,K.SUPPLIER,r),value:supplierFormula(r)};
+  setModelCell("kosh",K.SUPPLIER,r,shown);
+  const el=document.querySelector(`[data-c="${K.SUPPLIER}"][data-r="${r}"]`);
+  if(el){if("value" in el&&el.tagName!=="TD")el.value=shown;else el.textContent=shown;}}
 function sib(r,role){return document.querySelector(`select[data-role="${role}"][data-r="${r}"]`);}
 function onCascade(el){
   const r=el.dataset.r,role=el.dataset.role,g=sib(r,"group"),s=sib(r,"sub"),n=sib(r,"name");
@@ -339,6 +350,7 @@ function onCascade(el){
   [["group",g],["sub",s],["name",n]].forEach(([role2,elem])=>{if(!elem)return;const c=role2==="group"?CONFIG.KOSH.GROUP:role2==="sub"?CONFIG.KOSH.SUB:CONFIG.KOSH.NAME;
     edits[CONFIG.KOSH.title+"!"+c+","+r]={range:A1(CONFIG.KOSH.title,c,+r),value:elem.value};
     setModelCell("kosh",c,+r,elem.value);});
+  setSupplier(+r,g,s,n);
   saveDraft();
 }
 /* перемикач «опціонально ⇄ обов'язково» */
@@ -363,7 +375,7 @@ function renderRob(){
     for(let c=0;c<ncol;c++){
       const cell=cells[c];
       if(c===R.inputCol||isFill(cell)){html+=`<td><input class="f" value="${esc(disp(cell))}" data-c="${c}" data-r="${r}" data-sheet="rob" oninput="onEdit(this)"></td>`;}
-      else html+=`<td class="lock" style="${styleOf(cell)}">${esc(disp(cell))}</td>`;
+      else html+=`<td class="lock" data-c="${c}" data-r="${r}" style="${styleOf(cell)}">${esc(disp(cell))}</td>`;
     }
     html+="</tr>";
   }
